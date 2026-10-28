@@ -57,3 +57,34 @@ export interface TrackingUpdate {
   sequence: number;
   recordedAt: string;
 }
+export interface MapPlace {
+  id: string;
+  label: string;
+  position: Coordinate;
+}
+export interface MapSearch {
+  items: MapPlace[];
+  provider: 'nominatim';
+}
+export interface MapConfig {
+  region: {
+    id: string;
+    name: string;
+    bounds: { west: number; south: number; east: number; north: number };
+    center: Coordinate;
+  };
+  geocodingConfigured: boolean;
+  routingConfigured: boolean;
+  searchMode: 'submit-only';
+  attribution: string;
+  attributionUrl: string;
+  routingProfile: 'driving-unverified-for-motorcycles';
+}
+export interface MapRoute {
+  distanceMeters: number;
+  durationSeconds: number;
+  geometry: { type: 'LineString'; coordinates: [number, number][] };
+  provider: 'osrm';
+  profile: 'driving';
+  motorcycleValidated: false;
+}

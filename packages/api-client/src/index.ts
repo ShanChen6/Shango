@@ -6,6 +6,11 @@ import type {
   PublicRole,
   Session,
   User,
+  Coordinate,
+  MapConfig,
+  MapPlace,
+  MapSearch,
+  MapRoute,
 } from '@shango/contracts';
 
 export class ApiError extends Error {
@@ -89,6 +94,16 @@ export function createApi(baseUrl: string, store: SessionStore) {
       return session;
     },
     me: () => request<User>('/auth/me'),
+    mapConfig: () => request<MapConfig>('/maps/config'),
+    searchPlaces: (q: string) => request<MapSearch>(`/maps/search?${new URLSearchParams({ q })}`),
+    reversePlace: (position: Coordinate) =>
+      request<{ item: MapPlace; requestedPosition: Coordinate; provider: 'nominatim' }>(
+        `/maps/reverse?${new URLSearchParams({ longitude: String(position.longitude), latitude: String(position.latitude) })}`,
+      ),
+    mapRoute: (pickup: Coordinate, dropoff: Coordinate) =>
+      request<MapRoute>(
+        `/maps/route?${new URLSearchParams({ pickupLng: String(pickup.longitude), pickupLat: String(pickup.latitude), dropoffLng: String(dropoff.longitude), dropoffLat: String(dropoff.latitude) })}`,
+      ),
     logout: async () => {
       try {
         await request('/auth/logout', 'POST');

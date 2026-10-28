@@ -227,10 +227,151 @@ paths:
         '403': { description: Insufficient role }
         '404': { description: Profile not found }
         '409': { description: Stale or already reviewed profile; reload }
+  /maps/config:
+    get:
+      tags: [Maps]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Hanoi discovery rectangle, configuration availability and attribution; does not expose provider URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  region: { type: object }
+                  geocodingConfigured: { type: boolean }
+                  routingConfigured: { type: boolean }
+                  searchMode: { type: string, enum: [submit-only] }
+                  attribution: { type: string }
+                  attributionUrl: { type: string, format: uri }
+                  routingProfile: { type: string }
+        '401': { description: Authentication required }
+  /maps/search:
+    get:
+      tags: [Maps]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, minLength: 3, maxLength: 160 }
+      responses:
+        '200':
+          description: At most five Hanoi results; submit-only, no autocomplete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    maxItems: 5
+                    items: { $ref: '#/components/schemas/MapPlace' }
+                  provider: { type: string, enum: [nominatim] }
+        '400': { description: Invalid input }
+        '401': { description: Authentication required }
+        '429': { description: User quota or global geocoder admission limit }
+        '502': { description: Upstream unavailable or malformed response }
+        '503': { description: Provider not configured }
+  /maps/reverse:
+    get:
+      tags: [Maps]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: longitude
+          required: true
+          schema: { type: number, minimum: 105.3, maximum: 106.05 }
+        - in: query
+          name: latitude
+          required: true
+          schema: { type: number, minimum: 20.55, maximum: 21.4 }
+      responses:
+        '200':
+          description: Nearest address and original selected point separately; do not move the pin to the address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: '#/components/schemas/MapPlace' }
+                  requestedPosition: { $ref: '#/components/schemas/Coordinate' }
+                  provider: { type: string, enum: [nominatim] }
+        '400': { description: Outside pilot rectangle or invalid coordinates }
+        '401': { description: Authentication required }
+        '404': { description: No Hanoi address found }
+        '429': { description: User quota or global geocoder admission limit }
+        '502': { description: Upstream unavailable or malformed response }
+        '503': { description: Provider not configured }
+  /maps/route:
+    get:
+      tags: [Maps]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: pickupLng
+          required: true
+          schema: { type: number, minimum: 105.3, maximum: 106.05 }
+        - in: query
+          name: pickupLat
+          required: true
+          schema: { type: number, minimum: 20.55, maximum: 21.4 }
+        - in: query
+          name: dropoffLng
+          required: true
+          schema: { type: number, minimum: 105.3, maximum: 106.05 }
+        - in: query
+          name: dropoffLat
+          required: true
+          schema: { type: number, minimum: 20.55, maximum: 21.4 }
+      responses:
+        '200':
+          description: OSRM driving route; no price and no straight-line fallback; motorcycle routing unverified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  distanceMeters: { type: number, minimum: 0 }
+                  durationSeconds: { type: number, minimum: 0 }
+                  geometry:
+                    type: object
+                    properties:
+                      type: { type: string, enum: [LineString] }
+                      coordinates:
+                        type: array
+                        items:
+                          type: array
+                          minItems: 2
+                          maxItems: 2
+                          items: { type: number }
+                  provider: { type: string, enum: [osrm] }
+                  profile: { type: string, enum: [driving] }
+                  motorcycleValidated: { type: boolean, enum: [false] }
+        '400': { description: Outside pilot rectangle or invalid coordinates }
+        '401': { description: Authentication required }
+        '404': { description: No route or no nearby road segment }
+        '429': { description: Quota exceeded }
+        '502': { description: Upstream unavailable or malformed response }
+        '503': { description: OSRM not configured }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    Coordinate:
+      type: object
+      required: [longitude, latitude]
+      properties:
+        longitude: { type: number }
+        latitude: { type: number }
+    MapPlace:
+      type: object
+      required: [id, label, position]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        position: { $ref: '#/components/schemas/Coordinate' }
     User:
       type: object
       required: [id, phone, role, displayName]

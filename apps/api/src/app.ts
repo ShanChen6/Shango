@@ -3,6 +3,7 @@ import { AuthController, AuthService } from './auth';
 import { Cache, Database } from './database';
 import { AccessGuard } from './security';
 import { AdminDriversController, DriversController } from './drivers';
+import { MapsController, MapsService } from './maps';
 
 @Controller('health')
 class HealthController {
@@ -32,7 +33,13 @@ class HealthController {
   }
 }
 @Module({
-  controllers: [HealthController, AuthController, DriversController, AdminDriversController],
-  providers: [Database, Cache, AuthService, AccessGuard],
+  controllers: [
+    HealthController,
+    AuthController,
+    DriversController,
+    AdminDriversController,
+    MapsController,
+  ],
+  providers: [Database, Cache, AuthService, AccessGuard, MapsService],
 })
 export class AppModule {}

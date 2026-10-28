@@ -4,6 +4,7 @@
 
 - Unit: cấm OTP dev ở production, tách secret, canonical E.164, lỗi cấu hình không lộ secret.
 - Component: button không submit ngoài ý muốn, loading/disabled, disabled Slot chặn handler của child, label/hint/error accessibility và phục hồi validation.
+- Maps: input trong/ngoài Hà Nội, chuẩn hóa/cache truy vấn, admission geocoder dùng Redis, dữ liệu upstream sai, NoRoute, cấu hình thiếu và bảo toàn pin khi reverse. HTTP provider fixture chạy cục bộ; test tự động không gọi bản đồ công cộng.
 - Integration trên DB/Redis riêng: readiness, OTP dùng một lần/giới hạn đoán/cooldown; rotate refresh đồng thời; logout thu hồi access và refresh; chặn đăng ký admin; RBAC; review đồng thời chỉ một kết quả; audit; ST_DWithin theo mét.
 - CI: typecheck toàn workspace, unit, migration, integration, API/Admin build và Android JS bundle cho hai app.
 - Fixtures tạo số điện thoại riêng và tự xóa user/profile/session/audit liên quan; không FLUSHDB hoặc TRUNCATE dữ liệu dùng chung.

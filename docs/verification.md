@@ -1,5 +1,16 @@
 # Kết quả kiểm chứng — 28/10/2026
 
+## Đợt Map Gateway Hà Nội
+
+- TypeScript toàn workspace và build API/Admin pass.
+- 9 unit test API, 11 test tương tác/accessibility Admin và 16 integration test pass (tổng 36).
+- Integration maps sử dụng Redis/PostgreSQL thật và Nominatim/OSRM HTTP fixture local; bao phủ cache, concurrency, bbox, bảo toàn pin reverse, NoRoute, lỗi upstream, timeout và giới hạn response.
+- Đã gọi một truy vấn địa danh thật Hồ Hoàn Kiếm qua Nominatim với opt-in development, nhận một kết quả trong Hà Nội. Chưa benchmark bộ địa chỉ hoặc tuyến đường thật.
+- Chưa có OSRM graph Hà Nội, tile provider được chốt hay native map/device QA. Backend và UI báo rõ chức năng chưa cấu hình, không trả tuyến/giá giả.
+- GitHub CI của foundation trước đó đã đạt; kết quả CI commit mới cần đọc theo Actions sau khi push.
+
+## Đợt foundation ban đầu
+
 Commit triển khai: `a79ba6935d4b5d689050d71790208223c38f0bce` trên `develop`.
 
 - TypeScript: toàn bộ API, Admin, Customer và Driver pass.

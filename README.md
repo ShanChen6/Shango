@@ -14,6 +14,8 @@ Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị vi
 
 Chưa có đặt đơn, Socket tracking, ví, upload giấy tờ hoặc SMS thật. Đây là môi trường phát triển; API chủ động từ chối khởi động ở production với OTP development.
 
+Đợt tiếp theo bổ sung Map Gateway cho **Hà Nội**: search/reverse qua Nominatim và routing qua OSRM, kèm tab **Bản đồ Hà Nội** trong Admin. Provider/tile cần được cấu hình; chưa xác minh native map hoặc tuyến xe máy. Xem [thiết lập bản đồ Hà Nội](docs/maps-hanoi.md).
+
 ## Cấu trúc
 
 ```text

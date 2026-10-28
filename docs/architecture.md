@@ -64,6 +64,8 @@ ORDER BY distance_m,d.driver_id LIMIT 20;
 
 ## Bản đồ: quyết định cần thử nghiệm
 
+Địa bàn pilot đã được chủ dự án chọn: **Hà Nội**. Map Gateway Nominatim/OSRM và Web map lab dùng Leaflet đã được bổ sung; chi tiết tại maps-hanoi.md. Đây là tiến độ Web/API; quyết định renderer native và chất lượng provider vẫn cần thử nghiệm.
+
 Chưa chọn provider hoặc renderer trước spike trên thiết bị. React Native Maps UrlTile vẫn phụ thuộc SDK native; nếu yêu cầu không dùng SDK Google trên Android, thử MapLibre React Native.
 
 - Tile: nhà cung cấp OSM-derived có điều khoản phù hợp hoặc self-host. Không hardcode public tile server làm production.

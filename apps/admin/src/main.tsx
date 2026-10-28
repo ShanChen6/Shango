@@ -4,6 +4,7 @@ import { createApi } from '@shango/api-client';
 import type { DriverReviewItem, Page, Session } from '@shango/contracts';
 import './style.css';
 import { ThemeShowcase } from './components/theme-showcase';
+import { MapPlayground } from './components/map-playground';
 
 let currentSession: Session | null = null;
 const api = createApi(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1', {
@@ -15,6 +16,7 @@ const api = createApi(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api
 const labels = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' };
 function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [view, setView] = useState<'drivers' | 'maps'>('drivers');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [challenge, setChallenge] = useState(false);
@@ -41,7 +43,7 @@ function App() {
     setData(await api.drivers(page, status));
   }, [page, status]);
   useEffect(() => {
-    if (!session) return;
+    if (!session || view !== 'drivers') return;
     let active = true;
     setData(null);
     setError('');
@@ -56,7 +58,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, [session, page, status]);
+  }, [session, page, status, view]);
   async function review(decision: 'approved' | 'rejected') {
     if (!selected) return;
     await api.reviewDriver(
@@ -75,7 +77,22 @@ function App() {
         <a className="brand" href="/">
           ShanGo<span>ĐIỀU PHỐI GIAO NHẬN</span>
         </a>
-        <div className="nav active">Hồ sơ tài xế</div>
+        <button
+          type="button"
+          className="nav"
+          aria-pressed={view === 'drivers'}
+          onClick={() => setView('drivers')}
+        >
+          Hồ sơ tài xế
+        </button>
+        <button
+          type="button"
+          className="nav"
+          aria-pressed={view === 'maps'}
+          onClick={() => setView('maps')}
+        >
+          Bản đồ Hà Nội
+        </button>
         <div className="sidebar-note">
           Nền tảng phát triển
           <br />
@@ -86,7 +103,13 @@ function App() {
         <header>
           <div>
             <p className="eyebrow">KHÔNG GIAN VẬN HÀNH</p>
-            <h1>{session ? 'Duyệt hồ sơ tài xế' : 'Đăng nhập quản trị'}</h1>
+            <h1>
+              {session
+                ? view === 'maps'
+                  ? 'Bản đồ Hà Nội'
+                  : 'Duyệt hồ sơ tài xế'
+                : 'Đăng nhập quản trị'}
+            </h1>
           </div>
           {session && (
             <button
@@ -181,6 +204,8 @@ function App() {
               </button>
             )}
           </form>
+        ) : view === 'maps' ? (
+          <MapPlayground api={api} />
         ) : (
           <>
             <section className="summary card">
