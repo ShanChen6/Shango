@@ -1,5 +1,7 @@
 # Kiến trúc ShanGo — foundation v0.1
 
+> **Architecture target 2026-10-28:** Web-only responsive cho Customer, Driver, Admin; giữ NestJS/PostGIS/Redis. Các đoạn nói Expo/MapLibre native bên dưới phản ánh **as-built legacy**, không phải target mới. Target và các browser limitations tại [ADR web-only](adr-web-only.md), kế hoạch tại [roadmap](roadmap-web.md). **Chưa có code migration.**
+
 ## Quyết định hiện tại
 
 - Modular monolith NestJS; npm workspaces; Node 24; TypeScript.
