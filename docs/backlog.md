@@ -17,7 +17,8 @@
 | SG-011     | Có code, chờ nghiệm thu                | List/lọc, xem bốn ảnh theo quyền và revision; server yêu cầu đủ tài liệu/lượt xem trước approval          |
 | SG-012     | Chờ nghiệm thu                         | Chạy integration CI và QA thiết bị trước khi đóng gate                                                    |
 | SG-013     | Có code, chưa nghiệm thu provider thật | Search/reverse/routing adapter, cache/rate limit, shared client và Admin map lab; xem maps-hanoi.md       |
-| SG-014–072 | Chưa làm                               | Theo lộ trình 24 tuần; không bật production trước release readiness                                       |
+| SG-014     | Có code/test logic, chờ native QA      | App Khách chọn điểm/tọa độ, MapLibre, liên hệ/ghi chú, xác nhận và tóm tắt; xem customer-addresses.md     |
+| SG-015–072 | Chưa làm                               | Tiếp theo: polygon PostGIS vùng phục vụ; chưa báo giá/đặt đơn                                             |
 
 ## Thứ tự tiếp theo
 

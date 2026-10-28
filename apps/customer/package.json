@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@maplibre/maplibre-react-native": "^11.5.0",
     "@shango/mobile-ui": "0.1.0",
     "expo": "~55.0.32",
     "expo-document-picker": "~55.0.17",
@@ -19,6 +20,7 @@
     "react-native": "0.83.10"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.16",
     "@types/react": "~19.2.0",
     "typescript": "~5.9.3"
   }
