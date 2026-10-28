@@ -14,6 +14,9 @@ import type {
   UserProfile,
   AuditFilters,
   AuditPage,
+  DriverDocuments,
+  DocumentKind,
+  DocumentUpload,
 } from '@shango/contracts';
 
 export class ApiError extends Error {
@@ -31,20 +34,28 @@ type SessionStore = {
 export function createApi(baseUrl: string, store: SessionStore) {
   let refreshInFlight: Promise<Session> | null = null;
   const root = baseUrl.replace(/\/$/, '');
-  async function send<T>(path: string, method: string, body: unknown, token?: string): Promise<T> {
+  async function send<T>(
+    path: string,
+    method: string,
+    body: unknown,
+    token?: string,
+    responseType: 'json' | 'blob' = 'json',
+  ): Promise<T> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
+    const multipart = body instanceof FormData;
+    const timer = setTimeout(() => controller.abort(), multipart ? 30000 : 10000);
     try {
       const response = await fetch(`${root}${path}`, {
         method,
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
+          ...(multipart ? {} : { 'Content-Type': 'application/json' }),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
       });
       if (response.status === 204) return undefined as T;
+      if (response.ok && responseType === 'blob') return (await response.blob()) as T;
       const data: unknown = await response.json();
       if (!response.ok) {
         const message =
@@ -58,16 +69,21 @@ export function createApi(baseUrl: string, store: SessionStore) {
       clearTimeout(timer);
     }
   }
-  async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  async function request<T>(
+    path: string,
+    method = 'GET',
+    body?: unknown,
+    responseType: 'json' | 'blob' = 'json',
+  ): Promise<T> {
     const session = await store.get();
     try {
-      return await send<T>(path, method, body, session?.accessToken);
+      return await send<T>(path, method, body, session?.accessToken, responseType);
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401 || !session) throw error;
       const latest = await store.get();
       // A concurrent request may already have rotated the session.
       if (latest && latest.accessToken !== session.accessToken)
-        return send<T>(path, method, body, latest.accessToken);
+        return send<T>(path, method, body, latest.accessToken, responseType);
       if (!refreshInFlight) {
         refreshInFlight = send<Session>('/auth/refresh', 'POST', {
           refreshToken: session.refreshToken,
@@ -85,7 +101,7 @@ export function createApi(baseUrl: string, store: SessionStore) {
           });
       }
       const updated = await refreshInFlight;
-      return send<T>(path, method, body, updated.accessToken);
+      return send<T>(path, method, body, updated.accessToken, responseType);
     }
   }
   return {
@@ -122,12 +138,30 @@ export function createApi(baseUrl: string, store: SessionStore) {
       }
     },
     driverProfile: () => request<DriverProfile | null>('/drivers/me'),
+    driverDocuments: () => request<DriverDocuments>('/drivers/me/documents'),
+    adminDriverDocuments: (id: string) =>
+      request<DriverDocuments>(`/admin/drivers/${id}/documents`),
+    documentContent: (id: string) =>
+      request<Blob>(`/driver-documents/${id}/content`, 'GET', undefined, 'blob'),
+    uploadDriverDocument: (
+      kind: DocumentKind,
+      expectedUpdatedAt: string,
+      file: Blob | { uri: string; name: string; type: string },
+    ) => {
+      const body = new FormData();
+      body.append('kind', kind);
+      body.append('expectedUpdatedAt', expectedUpdatedAt);
+      body.append('file', file as Blob);
+      return request<DocumentUpload>('/drivers/me/documents', 'POST', body);
+    },
     submitDriver: (vehiclePlate: string, vehicleType: string) =>
       request<DriverProfile>('/drivers/me', 'POST', { vehiclePlate, vehicleType }),
     drivers: (page: number, status = '') =>
       request<Page<DriverReviewItem>>(
         `/admin/drivers?page=${page}${status ? `&status=${status}` : ''}`,
       ),
+    reopenDriver: (id: string, expectedUpdatedAt: string, reason: string) =>
+      request<DriverProfile>(`/admin/drivers/${id}/reopen`, 'POST', { expectedUpdatedAt, reason }),
     reviewDriver: (
       id: string,
       status: 'approved' | 'rejected',

@@ -17,8 +17,10 @@ import { z } from 'zod';
 import { Database } from './database';
 import { AccessGuard, AuthRequest, Roles } from './security';
 import { parse } from './validation';
+import { loadConfig } from './config';
+import { requiredKinds } from './document-policy';
 
-const profileSelect = `user_id AS "userId", vehicle_plate AS "vehiclePlate", vehicle_type AS "vehicleType", status,
+export const profileSelect = `user_id AS "userId", vehicle_plate AS "vehiclePlate", vehicle_type AS "vehicleType", status,
  rejection_reason AS "rejectionReason", updated_at AS "updatedAt"`;
 const profileSchema = z
   .object({
@@ -51,7 +53,8 @@ export class DriversController {
       `INSERT INTO driver_profiles (user_id, vehicle_plate, vehicle_type)
       VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE
       SET vehicle_plate = EXCLUDED.vehicle_plate, vehicle_type = EXCLUDED.vehicle_type,
-          status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = now()
+          status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL,
+          updated_at = GREATEST(clock_timestamp(), driver_profiles.updated_at + interval '1 millisecond')
       WHERE driver_profiles.status <> 'approved' RETURNING ${profileSelect}`,
       [request.account.id, input.vehiclePlate, input.vehicleType],
     );
@@ -133,10 +136,31 @@ export class AdminDriversController {
         await client.query('SELECT * FROM driver_profiles WHERE user_id = $1 FOR UPDATE', [id])
       ).rows[0];
       if (!previous) throw new NotFoundException();
+      if (input.status === 'approved') {
+        const documents = await client.query<{ kind: string; viewed: boolean }>(
+          `SELECT d.kind, EXISTS(SELECT 1 FROM audit_logs a WHERE a.actor_id=$2 AND a.entity_id=$1
+            AND a.action='driver.document.viewed' AND a.metadata->>'documentId'=d.id::text AND a.metadata->>'profileUpdatedAt'=$3) AS viewed
+           FROM driver_documents d WHERE d.driver_id=$1 AND d.superseded_at IS NULL`,
+          [id, request.account.id, new Date(previous.updated_at).toISOString()],
+        );
+        const present = new Set(documents.rows.map((row) => row.kind));
+        if (
+          requiredKinds(loadConfig().DRIVER_REQUIRED_DOCUMENTS).some((kind) => !present.has(kind))
+        ) {
+          throw new ConflictException(
+            'Required driver documents are missing. Reload and inspect all documents before approval.',
+          );
+        }
+        const viewed = new Set(documents.rows.filter((row) => row.viewed).map((row) => row.kind));
+        if (requiredKinds(loadConfig().DRIVER_REQUIRED_DOCUMENTS).some((kind) => !viewed.has(kind)))
+          throw new ConflictException(
+            'Open every required current document before approving this driver',
+          );
+      }
       // Compare timestamps inside PostgreSQL to preserve microsecond precision.
       const result = await client.query(
         `UPDATE driver_profiles SET status=$2, rejection_reason=$3,
-        reviewed_by=$4, reviewed_at=now(), updated_at=clock_timestamp()
+        reviewed_by=$4, reviewed_at=now(), updated_at=GREATEST(clock_timestamp(),updated_at+interval '1 millisecond')
         WHERE user_id=$1 AND updated_at=$5::timestamptz AND status='pending'
         RETURNING ${profileSelect}`,
         [
@@ -158,6 +182,45 @@ export class AdminDriversController {
         ],
       );
       return result.rows[0];
+    });
+  }
+  @Post(':id/reopen')
+  @Roles('admin')
+  async reopen(@Param('id') id: string, @Body() body: unknown, @Req() request: AuthRequest) {
+    parse(z.uuid(), id);
+    const input = parse(
+      z
+        .object({
+          reason: z.string().trim().min(3).max(500),
+          expectedUpdatedAt: z.iso.datetime({ offset: true }),
+        })
+        .strict(),
+      body,
+    );
+    return this.database.transaction(async (client) => {
+      const current = (
+        await client.query('SELECT status FROM driver_profiles WHERE user_id=$1 FOR UPDATE', [id])
+      ).rows[0];
+      if (!current) throw new NotFoundException();
+      const profile = (
+        await client.query(
+          `UPDATE driver_profiles SET status='pending',reviewed_by=NULL,reviewed_at=NULL,rejection_reason=NULL,
+        updated_at=GREATEST(clock_timestamp(),updated_at+interval '1 millisecond') WHERE user_id=$1 AND status='approved' AND updated_at=$2::timestamptz RETURNING ${profileSelect}`,
+          [id, input.expectedUpdatedAt],
+        )
+      ).rows[0];
+      if (!profile)
+        throw new ConflictException('Profile changed or is not approved. Reload before reopening.');
+      await client.query('UPDATE driver_locations SET is_available=false WHERE driver_id=$1', [id]);
+      await client.query(
+        `INSERT INTO audit_logs(actor_id,action,entity_type,entity_id,metadata) VALUES($1,'driver.review.reopened','driver_profile',$2,$3)`,
+        [
+          request.account.id,
+          id,
+          JSON.stringify({ from: 'approved', to: 'pending', reason: input.reason }),
+        ],
+      );
+      return profile;
     });
   }
 }

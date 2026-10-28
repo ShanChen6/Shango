@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-ci/
 coverage/
+.private-documents/
 .expo/
 .env
 .env.*

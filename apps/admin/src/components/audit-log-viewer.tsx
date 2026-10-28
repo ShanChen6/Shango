@@ -18,6 +18,9 @@ const actionLabels: Record<AuditAction, string> = {
   'user.profile.updated': 'Cập nhật hồ sơ',
   'driver.review': 'Duyệt hồ sơ tài xế',
   'admin.bootstrap': 'Cấp quyền quản trị',
+  'driver.document.uploaded': 'Nộp giấy tờ tài xế',
+  'driver.document.viewed': 'Xem giấy tờ tài xế',
+  'driver.review.reopened': 'Mở lại hồ sơ tài xế',
 };
 const formatter = new Intl.DateTimeFormat('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh',

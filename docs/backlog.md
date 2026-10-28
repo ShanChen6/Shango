@@ -13,8 +13,8 @@
 | SG-007     | Một phần                               | OTP development, rate limit, phiên, refresh/logout; chưa SMS thật                                         |
 | SG-008     | Có code                                | Đăng nhập, secure storage, refresh; cần kiểm thử thiết bị và resend UX nâng cao                           |
 | SG-009     | Một phần                               | Có RBAC, CLI bootstrap và audit viewer chỉ dành Admin; UI kế toán chưa có                                 |
-| SG-010     | Một phần                               | Có hồ sơ tên khách/tài xế, version chống ghi đè và phương tiện; chưa upload giấy tờ                       |
-| SG-011     | Một phần                               | List/lọc/phân trang, review optimistic concurrency, audit; chưa xem giấy tờ                               |
+| SG-010     | Có code, chờ QA thiết bị               | Có hồ sơ tên/phương tiện và upload JPEG/PNG riêng tư; storage local, còn retention/backup/production      |
+| SG-011     | Có code, chờ nghiệm thu                | List/lọc, xem bốn ảnh theo quyền và revision; server yêu cầu đủ tài liệu/lượt xem trước approval          |
 | SG-012     | Chờ nghiệm thu                         | Chạy integration CI và QA thiết bị trước khi đóng gate                                                    |
 | SG-013     | Có code, chưa nghiệm thu provider thật | Search/reverse/routing adapter, cache/rate limit, shared client và Admin map lab; xem maps-hanoi.md       |
 | SG-014–072 | Chưa làm                               | Theo lộ trình 24 tuần; không bật production trước release readiness                                       |

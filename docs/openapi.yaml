@@ -226,7 +226,134 @@ paths:
         '400': { description: Invalid request }
         '403': { description: Insufficient role }
         '404': { description: Profile not found }
-        '409': { description: Stale or already reviewed profile; reload }
+        '409':
+          {
+            description: Stale/already reviewed profile,
+            missing required images or missing inspections of the current revision,
+          }
+  /admin/drivers/{id}/reopen:
+    post:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason, expectedUpdatedAt]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 500 }
+                expectedUpdatedAt: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Approved profile reopened as pending, availability disabled and action audited; Admin only
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriverProfile' }
+        '400': { description: Reason or revision invalid }
+        '401': { description: Invalid session }
+        '403': { description: Admin required; dispatchers cannot reopen }
+        '404': { description: Profile not found }
+        '409': { description: Stale revision or profile not approved }
+  /drivers/me/documents:
+    get:
+      tags: [Drivers]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Current document set and matching profile revision; driver role only
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriverDocuments' }
+        '401': { description: Invalid session }
+        '403': { description: Driver role required }
+        '404': { description: Submit vehicle profile first }
+    post:
+      tags: [Drivers]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind, expectedUpdatedAt, file]
+              properties:
+                kind: { $ref: '#/components/schemas/DocumentKind' }
+                expectedUpdatedAt: { type: string, format: date-time }
+                file:
+                  {
+                    type: string,
+                    format: binary,
+                    description: JPEG or PNG up to 5 MiB; decoded and normalized to JPEG without source metadata,
+                  }
+      responses:
+        '201':
+          description: New current document and updated pending profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  document: { $ref: '#/components/schemas/DriverDocument' }
+                  profile: { $ref: '#/components/schemas/DriverProfile' }
+        '400': { description: Invalid image or multipart fields }
+        '401': { description: Invalid session }
+        '403': { description: Driver role required }
+        '409': { description: Stale revision, missing vehicle profile or approved profile locked }
+        '413': { description: Image exceeds 5 MiB }
+        '429': { description: Upload quota or capacity exceeded }
+        '503': { description: Private storage unavailable }
+  /admin/drivers/{id}/documents:
+    get:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Admin/dispatcher snapshot and IDs inspected by the current reviewer in the current profile revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriverDocuments' }
+        '401': { description: Invalid session }
+        '403': { description: Admin or dispatcher required }
+        '404': { description: Profile not found }
+  /driver-documents/{id}/content:
+    get:
+      tags: [Drivers]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Private normalized image for owning driver or admin/dispatcher; successful read creates an inspection event
+          headers:
+            Cache-Control:
+              schema: { type: string, example: 'private, no-store, max-age=0' }
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename="identity_front.jpg"' }
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        '401': { description: Invalid session }
+        '404': { description: Not found, superseded or inaccessible }
+        '429': { description: Content read quota exceeded }
+        '503': { description: Storage or integrity check failed }
   /users/me:
     get:
       tags: [Profiles]
@@ -291,7 +418,19 @@ paths:
           schema: { type: string, format: uuid }
         - in: query
           name: action
-          schema: { type: string, enum: [user.profile.updated, driver.review, admin.bootstrap] }
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  user.profile.updated,
+                  driver.review,
+                  admin.bootstrap,
+                  driver.document.uploaded,
+                  driver.document.viewed,
+                  driver.review.reopened,
+                ],
+            }
         - in: query
           name: from
           schema: { type: string, format: date-time, description: Inclusive lower bound }
@@ -451,6 +590,33 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    DocumentKind:
+      type: string
+      enum: [identity_front, identity_back, driver_license, vehicle_registration]
+    DriverDocument:
+      type: object
+      required: [id, driverId, kind, contentType, byteSize, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        driverId: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/DocumentKind' }
+        contentType: { type: string, enum: [image/jpeg] }
+        byteSize: { type: integer, minimum: 1, maximum: 5242880 }
+        createdAt: { type: string, format: date-time }
+    DriverDocuments:
+      type: object
+      required: [items, profile, requiredKinds, viewedIds]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/DriverDocument' }
+        profile: { $ref: '#/components/schemas/DriverProfile' }
+        requiredKinds:
+          type: array
+          items: { $ref: '#/components/schemas/DocumentKind' }
+        viewedIds:
+          type: array
+          items: { type: string, format: uuid }
     UserProfile:
       allOf:
         - { $ref: '#/components/schemas/User' }

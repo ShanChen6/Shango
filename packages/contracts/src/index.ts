@@ -15,7 +15,13 @@ export interface UserProfile extends User {
   version: number;
   updatedAt: string;
 }
-export type AuditAction = 'user.profile.updated' | 'driver.review' | 'admin.bootstrap';
+export type AuditAction =
+  | 'user.profile.updated'
+  | 'driver.review'
+  | 'admin.bootstrap'
+  | 'driver.document.uploaded'
+  | 'driver.document.viewed'
+  | 'driver.review.reopened';
 export interface AuditEntry {
   id: string;
   actorId: string;
@@ -53,6 +59,26 @@ export interface DriverProfile {
   status: DriverStatus;
   rejectionReason: string | null;
   updatedAt: string;
+}
+export type DocumentKind =
+  'identity_front' | 'identity_back' | 'driver_license' | 'vehicle_registration';
+export interface DriverDocument {
+  id: string;
+  driverId: string;
+  kind: DocumentKind;
+  contentType: 'image/jpeg';
+  byteSize: number;
+  createdAt: string;
+}
+export interface DriverDocuments {
+  items: DriverDocument[];
+  profile: DriverProfile;
+  requiredKinds: DocumentKind[];
+  viewedIds: string[];
+}
+export interface DocumentUpload {
+  document: DriverDocument;
+  profile: DriverProfile;
 }
 export interface DriverReviewItem extends DriverProfile {
   phone: string;

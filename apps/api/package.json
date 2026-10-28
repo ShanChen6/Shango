@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude '**/*.integration.test.ts'",
-    "test:integration": "vitest run test/foundation.integration.test.ts test/maps.integration.test.ts test/profiles.integration.test.ts",
+    "test:integration": "vitest run test/foundation.integration.test.ts test/maps.integration.test.ts test/profiles.integration.test.ts test/documents.integration.test.ts",
     "db:migrate": "tsx src/migrate.ts",
     "admin:grant": "tsx src/grant-admin.ts"
   },
@@ -20,14 +20,17 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.5.0",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "^0.35.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.15.5",
     "tsx": "^4.20.6",
