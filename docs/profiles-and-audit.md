@@ -46,4 +46,4 @@ Prefix chung: `/api/v1`. Các field body/query không được khai báo bị t�
 - Admin: lọc/reset cursor, phân trang, khoảng ngày sai, loading/error/empty/retry.
 - Native UI hiện được typecheck và đóng gói trong CI; chưa chạy kiểm thử thiết bị Android/iOS ở đợt này.
 
-Giấy tờ tài xế, upload private và kiểm chứng SMS thật vẫn chưa triển khai. Không coi màn chỉnh tên là hoàn tất toàn bộ SG-010 hoặc gate nền tảng.
+Giấy tờ tài xế và upload private đã được bổ sung ở đợt tiếp theo, xem driver-documents.md. Kiểm chứng SMS thật và native device QA vẫn còn; không coi màn chỉnh tên là hoàn tất toàn bộ SG-010 hoặc gate nền tảng.

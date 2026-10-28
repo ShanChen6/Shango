@@ -1,5 +1,14 @@
 # Kết quả kiểm chứng — 28/10/2026
 
+## Đợt giấy tờ tài xế riêng tư
+
+- TypeScript toàn workspace, build API/Admin và 70 test pass: 18 unit API, 21 test Admin/API client, 31 integration.
+- Test giấy tờ dùng ảnh tổng hợp và storage tạm riêng; không dùng tài liệu cá nhân thật. Có kiểm thử MIME/signature, EXIF, file quá cỡ, quyền owner/reviewer, session bị khóa, superseded ID, upload đồng thời, rollback storage và hash integrity.
+- Approval cần đủ bốn ảnh theo chính sách chủ dự án và lượt xem của chính reviewer trong revision hiện tại. Đổi phương tiện cũng hủy hiệu lực lượt xem cũ; integration đã kiểm chứng.
+- Admin có thể mở lại approved với lý do để bổ sung giấy tờ: pending, tắt availability, audit và chống request stale; dispatcher bị từ chối. Integration đã kiểm chứng luồng hồ sơ cũ.
+- Shared HTTP client hỗ trợ multipart đúng boundary và refresh token khi đọc binary/upload. Blob preview trên Web được thu hồi khi đóng/unmount; UI và transport đã kiểm thử.
+- Native picker/upload/preview đã có code, chưa xác minh thiết bị. CI sẽ kiểm tra Android bundling sau push. Storage local chưa có object storage, encryption/backup/retention production.
+
 ## Đợt hồ sơ người dùng và nhật ký Admin
 
 - TypeScript toàn workspace và build API/Admin pass.

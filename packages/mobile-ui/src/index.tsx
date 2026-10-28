@@ -13,6 +13,7 @@ import * as SecureStore from 'expo-secure-store';
 import { createApi } from '@shango/api-client';
 import type { DriverProfile, PublicRole, Session } from '@shango/contracts';
 import { ProfileEditor } from './profile-editor';
+import { DriverDocumentsPanel } from './driver-documents';
 
 const statusLabels = {
   pending: 'Đang chờ duyệt',
@@ -230,8 +231,16 @@ export function ShanGoApp({ role, apiUrl }: { role: PublicRole; apiUrl: string }
                       plate.trim().length < 4,
                     )}
                   {button('Làm mới trạng thái', loadProfile)}
+                  {profile && (
+                    <DriverDocumentsPanel
+                      api={api}
+                      profile={profile}
+                      onProfileChange={setProfile}
+                    />
+                  )}
                   <Text style={styles.description}>
-                    Bản nền tảng chưa hỗ trợ tải giấy tờ, bật online hoặc nhận đơn.
+                    Bật online và nhận đơn sẽ được bổ sung sau khi hồ sơ được duyệt và luồng GPS sẵn
+                    sàng.
                   </Text>
                 </>
               ) : (

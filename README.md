@@ -12,7 +12,7 @@ Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị vi
 - React Admin: đăng nhập, lọc/phân trang hồ sơ, duyệt/từ chối có audit và chống review stale.
 - CI cho typecheck, test, DB migration, integration, build API/Admin và mobile JS bundles.
 
-Chưa có đặt đơn, Socket tracking, ví, upload giấy tờ hoặc SMS thật. Đây là môi trường phát triển; API chủ động từ chối khởi động ở production với OTP development.
+Chưa có đặt đơn, Socket tracking, ví hoặc SMS thật. Giấy tờ tài xế được upload vào filesystem riêng tư cho môi trường phát triển, cần hoàn thiện vận hành lưu trữ trước production. API chủ động từ chối khởi động ở production với OTP development.
 
 Đợt tiếp theo bổ sung Map Gateway cho **Hà Nội**: search/reverse qua Nominatim và routing qua OSRM, kèm tab **Bản đồ Hà Nội** trong Admin. Provider/tile cần được cấu hình; chưa xác minh native map hoặc tuyến xe máy. Xem [thiết lập bản đồ Hà Nội](docs/maps-hanoi.md).
 
@@ -87,6 +87,7 @@ Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS nativ
 - [Nhánh và review](docs/branch-policy.md)
 - [Kế hoạch kiểm thử](docs/test-plan.md)
 - [Hồ sơ người dùng và nhật ký Admin](docs/profiles-and-audit.md)
+- [Upload và duyệt giấy tờ tài xế](docs/driver-documents.md)
 - [Button, Input, Card và theme Khách/Xế/Admin](docs/components.md) — xem mẫu tại `/components` trong Web Admin
 - [API contract](docs/openapi.yaml)
 

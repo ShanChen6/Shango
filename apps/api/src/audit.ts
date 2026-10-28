@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Database } from './database';
 import { AccessGuard, Roles } from './security';
 import { parse } from './validation';
+import { DOCUMENT_KINDS } from './document-policy';
 
 export const auditQuerySchema = z
   .object({
@@ -17,7 +18,16 @@ export const auditQuerySchema = z
       .optional(),
     actorId: z.uuid().optional(),
     entityId: z.uuid().optional(),
-    action: z.enum(['user.profile.updated', 'driver.review', 'admin.bootstrap']).optional(),
+    action: z
+      .enum([
+        'user.profile.updated',
+        'driver.review',
+        'admin.bootstrap',
+        'driver.document.uploaded',
+        'driver.document.viewed',
+        'driver.review.reopened',
+      ])
+      .optional(),
     from: z.iso.datetime({ offset: true }).optional(),
     to: z.iso.datetime({ offset: true }).optional(),
   })
@@ -38,6 +48,17 @@ const metadataSchemas = {
     reason: z.string().max(500).nullable(),
   }),
   'admin.bootstrap': z.object({ source: z.literal('operator-cli') }),
+  'driver.review.reopened': z.object({
+    from: z.literal('approved'),
+    to: z.literal('pending'),
+    reason: z.string().min(3).max(500),
+  }),
+  'driver.document.uploaded': z.object({ documentId: z.uuid(), kind: z.enum(DOCUMENT_KINDS) }),
+  'driver.document.viewed': z.object({
+    documentId: z.uuid(),
+    kind: z.enum(DOCUMENT_KINDS),
+    profileUpdatedAt: z.iso.datetime({ offset: true }),
+  }),
 };
 export function auditMetadata(action: string, value: unknown): Record<string, unknown> {
   const schema = Object.hasOwn(metadataSchemas, action)

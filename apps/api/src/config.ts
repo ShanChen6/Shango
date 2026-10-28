@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
+import { validRequiredKinds } from './document-policy';
 
 export const environmentSchema = z
   .object({
@@ -18,6 +19,11 @@ export const environmentSchema = z
       .min(12)
       .default('ShanGo/0.1 (+https://github.com/ShanChen6/Shango)'),
     OSRM_BASE_URL: z.string().url().optional(),
+    PRIVATE_DOCUMENTS_DIR: z.string().min(1).default('.private-documents'),
+    DRIVER_REQUIRED_DOCUMENTS: z
+      .string()
+      .default('identity_front,identity_back,driver_license,vehicle_registration')
+      .refine(validRequiredKinds, 'Choose a nonempty, unique list of supported document kinds'),
   })
   .superRefine((env, context) => {
     for (const key of ['NOMINATIM_BASE_URL', 'OSRM_BASE_URL'] as const) {

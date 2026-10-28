@@ -6,6 +6,7 @@ import './style.css';
 import { ThemeShowcase } from './components/theme-showcase';
 import { MapPlayground } from './components/map-playground';
 import { AuditLogViewer } from './components/audit-log-viewer';
+import { DriverDocumentReview } from './components/driver-document-review';
 
 let currentSession: Session | null = null;
 const api = createApi(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1', {
@@ -29,6 +30,7 @@ function App() {
   const [data, setData] = useState<Page<DriverReviewItem> | null>(null);
   const [selected, setSelected] = useState<DriverReviewItem | null>(null);
   const [reason, setReason] = useState('');
+  const [documentsReady, setDocumentsReady] = useState(false);
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -287,15 +289,17 @@ function App() {
                           {item.rejectionReason && <small>{item.rejectionReason}</small>}
                         </td>
                         <td>
-                          {item.status === 'pending' && (
+                          {(item.status === 'pending' ||
+                            (item.status === 'approved' && session.user.role === 'admin')) && (
                             <button
                               className="secondary"
                               onClick={() => {
                                 setSelected(item);
                                 setReason('');
+                                setDocumentsReady(false);
                               }}
                             >
-                              Xem xét
+                              {item.status === 'approved' ? 'Mở lại hồ sơ' : 'Xem xét'}
                             </button>
                           )}
                         </td>
@@ -329,9 +333,19 @@ function App() {
             {selected && (
               <section className="card review">
                 <h2>Xem xét: {selected.vehiclePlate}</h2>
-                <p>{selected.phone} · Chưa bao gồm kiểm tra giấy tờ trong bản nền tảng này.</p>
+                <p>{selected.phone}</p>
+                <DriverDocumentReview
+                  api={api}
+                  driverId={selected.userId}
+                  onReady={setDocumentsReady}
+                  onProfileChange={(profile) =>
+                    setSelected((current) =>
+                      current?.userId === profile.userId ? { ...current, ...profile } : current,
+                    )
+                  }
+                />
                 <label>
-                  Lý do từ chối
+                  {selected.status === 'approved' ? 'Lý do mở lại hồ sơ' : 'Lý do từ chối'}
                   <textarea
                     value={reason}
                     onChange={(event) => setReason(event.target.value)}
@@ -339,16 +353,38 @@ function App() {
                   />
                 </label>
                 <div className="actions">
-                  <button disabled={busy} onClick={() => void run(() => review('approved'))}>
-                    Duyệt hồ sơ
-                  </button>
-                  <button
-                    className="danger"
-                    disabled={busy || reason.trim().length < 3}
-                    onClick={() => void run(() => review('rejected'))}
-                  >
-                    Từ chối
-                  </button>
+                  {selected.status === 'approved' && session.user.role === 'admin' && (
+                    <button
+                      disabled={busy || reason.trim().length < 3}
+                      onClick={() =>
+                        void run(async () => {
+                          await api.reopenDriver(selected.userId, selected.updatedAt, reason);
+                          setSelected(null);
+                          setReason('');
+                          await load();
+                        })
+                      }
+                    >
+                      Mở lại để bổ sung giấy tờ
+                    </button>
+                  )}
+                  {selected.status === 'pending' && (
+                    <>
+                      <button
+                        disabled={busy || !documentsReady}
+                        onClick={() => void run(() => review('approved'))}
+                      >
+                        Duyệt hồ sơ
+                      </button>
+                      <button
+                        className="danger"
+                        disabled={busy || reason.trim().length < 3}
+                        onClick={() => void run(() => review('rejected'))}
+                      >
+                        Từ chối
+                      </button>
+                    </>
+                  )}
                   <button className="secondary" disabled={busy} onClick={() => setSelected(null)}>
                     Đóng
                   </button>
