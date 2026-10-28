@@ -5,7 +5,11 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "plugins": ["expo-secure-store"],
+    "plugins": [
+      "expo-secure-store",
+      "@maplibre/maplibre-react-native",
+      "./plugins/with-short-cmake-path"
+    ],
     "ios": { "bundleIdentifier": "com.shango.customer", "supportsTablet": false },
     "android": { "package": "com.shango.customer" }
   }

@@ -88,6 +88,7 @@ Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS nativ
 - [Kế hoạch kiểm thử](docs/test-plan.md)
 - [Hồ sơ người dùng và nhật ký Admin](docs/profiles-and-audit.md)
 - [Upload và duyệt giấy tờ tài xế](docs/driver-documents.md)
+- [SG-014: Chọn địa chỉ trên App Khách](docs/customer-addresses.md) — MapLibre cần native/development build, không phải Expo Go
 - [Button, Input, Card và theme Khách/Xế/Admin](docs/components.md) — xem mẫu tại `/components` trong Web Admin
 - [API contract](docs/openapi.yaml)
 

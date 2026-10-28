@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Alert,
   Pressable,
@@ -20,7 +20,15 @@ const statusLabels = {
   approved: 'Đã được duyệt',
   rejected: 'Cần cập nhật hồ sơ',
 };
-export function ShanGoApp({ role, apiUrl }: { role: PublicRole; apiUrl: string }) {
+export function ShanGoApp({
+  role,
+  apiUrl,
+  customerPanel,
+}: {
+  role: PublicRole;
+  apiUrl: string;
+  customerPanel?: (api: ReturnType<typeof createApi>) => ReactNode;
+}) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -247,11 +255,12 @@ export function ShanGoApp({ role, apiUrl }: { role: PublicRole; apiUrl: string }
                 <>
                   <Text style={styles.status}>Đăng nhập thành công</Text>
                   <Text style={styles.description}>
-                    Chọn địa chỉ, báo giá và đặt đơn sẽ được bổ sung ở giai đoạn tiếp theo.
+                    Báo giá và đặt đơn sẽ được bổ sung sau bước xác nhận địa chỉ.
                   </Text>
                 </>
               )}
             </View>
+            {role === 'customer' && customerPanel?.(api)}
             {button('Đăng xuất', async () => {
               try {
                 await api.logout();

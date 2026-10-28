@@ -1,5 +1,14 @@
 # Kết quả kiểm chứng — 28/10/2026
 
+## SG-014 — Địa chỉ lấy/giao trên App Khách
+
+- 85 test đạt: 33 unit API/domain (15 test mới cho draft địa chỉ), 21 UI/HTTP client và 31 integration hồi quy.
+- TypeScript toàn workspace, API/Admin build và Android Hermes bundle App Khách đạt.
+- Đã chạy Expo Android prebuild và `:app:assembleDebug` cho arm64-v8a, SDK 36, NDK 27.1; kết quả **BUILD SUCCESSFUL**. Đây là debug APK cần Metro trong development, không phải bản phát hành độc lập/store.
+- Lượt native build đầu lỗi đường dẫn object C++ quá dài trên Windows. Plugin opt-in SHANGO_CMAKE_BUILD_DIR chuyển staging ra đường dẫn ngắn; lần build sau thành công. Native output và đường dẫn máy không commit.
+- Không có thiết bị/emulator chạy để QA giao diện; chưa kiểm thử iOS. Không coi native compile hoặc test controller là bằng chứng bấm/kéo pin thực tế.
+- SG-014: có code/test/build, chờ nghiệm thu thiết bị. Chưa thực hiện SG-015 polygon vùng phục vụ hoặc SG-016 báo giá.
+
 ## Đợt giấy tờ tài xế riêng tư
 
 - TypeScript toàn workspace, build API/Admin và 70 test pass: 18 unit API, 21 test Admin/API client, 31 integration.
