@@ -86,6 +86,7 @@ Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS nativ
 - [Backlog và phạm vi đã thực hiện](docs/backlog.md)
 - [Nhánh và review](docs/branch-policy.md)
 - [Kế hoạch kiểm thử](docs/test-plan.md)
+- [Hồ sơ người dùng và nhật ký Admin](docs/profiles-and-audit.md)
 - [Button, Input, Card và theme Khách/Xế/Admin](docs/components.md) — xem mẫu tại `/components` trong Web Admin
 - [API contract](docs/openapi.yaml)
 

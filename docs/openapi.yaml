@@ -227,6 +227,98 @@ paths:
         '403': { description: Insufficient role }
         '404': { description: Profile not found }
         '409': { description: Stale or already reviewed profile; reload }
+  /users/me:
+    get:
+      tags: [Profiles]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Profile for the current active account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfile' }
+        '401': { description: Invalid or inactive session }
+    patch:
+      tags: [Profiles]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [displayName, expectedVersion]
+              properties:
+                displayName:
+                  {
+                    type: string,
+                    minLength: 2,
+                    maxLength: 80,
+                    description: NFC normalized; no control characters,
+                  }
+                expectedVersion: { type: integer, minimum: 0, maximum: 2147483646 }
+      responses:
+        '200':
+          description: Updated profile, or unchanged profile without version/event duplication
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfile' }
+        '400': { description: Invalid input or protected fields supplied }
+        '401': { description: Invalid or inactive session }
+        '409': { description: Profile version changed; reload before saving }
+  /admin/audit-logs:
+    get:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - in: query
+          name: cursor
+          schema:
+            {
+              type: string,
+              pattern: '^[1-9][0-9]{0,18}$',
+              description: Previous nextCursor; preserve exact string value,
+            }
+        - in: query
+          name: actorId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: entityId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: action
+          schema: { type: string, enum: [user.profile.updated, driver.review, admin.bootstrap] }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time, description: Inclusive lower bound }
+        - in: query
+          name: to
+          schema:
+            {
+              type: string,
+              format: date-time,
+              description: Exclusive upper bound; must be after from,
+            }
+      responses:
+        '200':
+          description: Admin-only cursor page ordered by descending event ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditEntry' }
+                  nextCursor: { type: string, nullable: true }
+        '400': { description: Invalid query or cursor }
+        '401': { description: Invalid or inactive session }
+        '403': { description: Admin role required }
   /maps/config:
     get:
       tags: [Maps]
@@ -359,6 +451,31 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    UserProfile:
+      allOf:
+        - { $ref: '#/components/schemas/User' }
+        - type: object
+          required: [version, updatedAt]
+          properties:
+            version: { type: integer, minimum: 0 }
+            updatedAt: { type: string, format: date-time }
+    AuditEntry:
+      type: object
+      required: [id, actorId, actorDisplayName, action, entityType, entityId, metadata, createdAt]
+      properties:
+        id: { type: string }
+        actorId: { type: string, format: uuid }
+        actorDisplayName:
+          { type: string, nullable: true, description: Current name; not a historic name snapshot }
+        action: { type: string }
+        entityType: { type: string }
+        entityId: { type: string, format: uuid }
+        metadata:
+          {
+            type: object,
+            description: Whitelisted fields for supported actions; empty object for unknown actions,
+          }
+        createdAt: { type: string, format: date-time }
     Coordinate:
       type: object
       required: [longitude, latitude]

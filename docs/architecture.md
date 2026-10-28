@@ -21,7 +21,7 @@ OTP giới hạn 5 yêu cầu/số/giờ, cooldown 60s, tối đa 5 lần đoán
 
 Vai trò đăng ký công khai chỉ customer/driver. Một số điện thoại có một vai trò; OTP đăng nhập không thay đổi vai trò tài khoản đã tồn tại. Admin cấp bằng CLI có quyền DB và được audit; không có mật khẩu hay tài khoản quản trị mặc định.
 
-Hồ sơ hiện tại chỉ gồm phương tiện và trạng thái duyệt. Chưa tải giấy tờ, KYC hoặc ảnh. Online chủ động bị chặn cho đến khi GPS/presence được triển khai. Hồ sơ được duyệt trong bản này không đủ điều kiện mở dịch vụ thật.
+Hồ sơ hiện tại gồm tên hiển thị có version, phương tiện và trạng thái duyệt. Admin có nhật ký thao tác với phân trang cursor và lọc metadata; xem profiles-and-audit.md. Chưa tải giấy tờ, KYC hoặc ảnh. Online chủ động bị chặn cho đến khi GPS/presence được triển khai. Hồ sơ được duyệt trong bản này không đủ điều kiện mở dịch vụ thật.
 
 ## State machine đã chốt cho MVP (chưa code)
 

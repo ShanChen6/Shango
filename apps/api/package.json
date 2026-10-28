@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude '**/*.integration.test.ts'",
-    "test:integration": "vitest run test/foundation.integration.test.ts test/maps.integration.test.ts",
+    "test:integration": "vitest run test/foundation.integration.test.ts test/maps.integration.test.ts test/profiles.integration.test.ts",
     "db:migrate": "tsx src/migrate.ts",
     "admin:grant": "tsx src/grant-admin.ts"
   },

@@ -11,6 +11,32 @@ export interface Session {
   refreshToken: string;
   user: User;
 }
+export interface UserProfile extends User {
+  version: number;
+  updatedAt: string;
+}
+export type AuditAction = 'user.profile.updated' | 'driver.review' | 'admin.bootstrap';
+export interface AuditEntry {
+  id: string;
+  actorId: string;
+  actorDisplayName: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+export interface AuditFilters {
+  action?: AuditAction;
+  actorId?: string;
+  entityId?: string;
+  from?: string;
+  to?: string;
+}
+export interface AuditPage {
+  items: AuditEntry[];
+  nextCursor: string | null;
+}
 export interface OtpRequest {
   phone: string;
   role: PublicRole;

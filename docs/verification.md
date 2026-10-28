@@ -1,5 +1,14 @@
 # Kết quả kiểm chứng — 28/10/2026
 
+## Đợt hồ sơ người dùng và nhật ký Admin
+
+- TypeScript toàn workspace và build API/Admin pass.
+- 14 unit test API, 15 test tương tác/accessibility Admin và 22 integration test pass (tổng 51).
+- Migration 002 đã áp dụng thành công trên database test và local development; database CI sẽ được dựng mới và migrate tuần tự.
+- Bao phủ update đồng thời, chống sửa role/phone/id qua body, bản ghi không thay đổi, quyền Admin, tài khoản khóa, cursor không mất precision, phân trang khi có event mới và mốc ngày Việt Nam.
+- UI native được bổ sung ProfileEditor dùng chung; cần QA thiết bị. CI sẽ đóng gói Android của cả hai app sau khi push; chưa coi đây là native APK/IPA build.
+- Quy trình nhánh được cập nhật đúng quyết định mới: main mặc định, develop làm việc; PR + CI + review trong chat, không yêu cầu approval GitHub độc lập và agent không tự merge.
+
 ## Đợt Map Gateway Hà Nội
 
 - TypeScript toàn workspace và build API/Admin pass.

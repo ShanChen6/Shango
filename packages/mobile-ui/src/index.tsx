@@ -12,6 +12,7 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { createApi } from '@shango/api-client';
 import type { DriverProfile, PublicRole, Session } from '@shango/contracts';
+import { ProfileEditor } from './profile-editor';
 
 const statusLabels = {
   pending: 'Đang chờ duyệt',
@@ -198,6 +199,7 @@ export function ShanGoApp({ role, apiUrl }: { role: PublicRole; apiUrl: string }
           </View>
         ) : (
           <>
+            <ProfileEditor api={api} />
             <View style={styles.card}>
               <Text style={styles.heading}>{session.user.phone}</Text>
               <Text style={styles.description}>
