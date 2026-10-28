@@ -52,7 +52,8 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 
 ## Task chuyển tiếp (proposal)
 
-- WEB-001: inventory/code & docs audit, dependency matrix.
+- WEB-001: **Hoàn tất audit** — inventory/code & docs audit, dependency matrix; xem
+  [baseline audit và task breakdown](web-001-audit.md). Không có migration code trong task này.
 - WEB-002: đo Active Tracking + Connection Recovery, stale thresholds, browser limits và quy trình khi Driver mất GPS.
 - WEB-003: 3 React/Vite frontend + shared packages, web auth ADR; không mở lại lựa chọn 1-vs-3 nếu PO chưa đổi quyết định.
 - WEB-004: UX flows/wireframes và responsive design system.
@@ -63,5 +64,9 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-009: API business flows + reconnect/snapshot.
 - WEB-010: staging, security/performance/accessibility và pilot.
 - WEB-011: deprecate Expo, mobile packages/scripts sau migration verified.
+
+WEB-002–011 được tách thành deliverable, dependency và acceptance gate cụ thể trong
+[WEB-001 baseline audit](web-001-audit.md). Trạng thái “hoàn tất audit” không đồng nghĩa
+Customer/Driver đã được chuyển sang web.
 
 Mã SG-001–072 trong `backlog.md` vẫn là lịch sử và phạm vi nghiệp vụ; không tự đánh dấu hoàn thành chỉ vì chuyển nền tảng.
