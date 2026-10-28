@@ -6,13 +6,20 @@
 
 Một sản phẩm giao nhận phục vụ **Khách hàng, Tài xế, Quản trị viên** qua trình duyệt responsive. Pilot: **Hà Nội**. Giữ NestJS API, PostGIS/Redis và audit; không phát hành Android/iOS app. Khả năng realtime, GPS, thông báo trên web phải được kiểm chứng trước khi hứa parity mobile.
 
+## Quyết định đã duyệt (28/10/2026)
+
+- **Kiến trúc frontend:** 3 ứng dụng web độc lập Customer, Driver, Admin dùng React + Vite + TypeScript trong monorepo, triển khai độc lập, chia sẻ UI web, API Client, Contracts; giữ Admin hiện hữu. Chỉ thay Expo sau migration gate.
+- **Driver:** Active Tracking + Connection Recovery bằng Web Geolocation khi browser cho phép + Socket.IO; không cam kết tracking khi khóa màn hình/chuyển tab. Reconnect lấy snapshot trạng thái đơn authoritative. Không tự hủy đơn đã nhận chỉ vì mất GPS.
+- **Chính sách đề xuất để đo W1:** mục tiêu GPS 5–10s, stale sau 30s, loại tài xế rảnh khỏi matching sau 60s không có fix GPS mới; cần validation và PO duyệt trước production. Redis vị trí gần nhất/TTL; PostgreSQL giữ order/assignment.
+- **Giới hạn MVP:** Web Push/PWA là tùy chọn, không phải workaround để đảm bảo GPS nền.
+
 ## Lộ trình theo gate (không gán ngày khi chưa ước lượng)
 
 | Phase | Công việc / deliverable | Tiêu chí hoàn tất |
 | --- | --- | --- |
 | W0 — Baseline & audit | Lập inventory frontend Expo/Admin, shared packages, API/CI; đánh dấu các task native deprecated; lập feature parity theo vai trò | Có danh mục giữ/thay/loại và rủi ro |
-| W1 — Browser feasibility | Spike web geolocation trên Android/iOS Safari/Chrome, tab nền/khóa màn hình; web map, permissions, notifications; mô phỏng mất kết nối | PO chấp nhận limitation/fallback, đặc biệt Driver tracking |
-| W2 — Architecture & UX | ADR frontend structure (một app hay nhiều app), auth web/cookie-CSRF, map renderer, navigation, responsive wireframes, design tokens | Review luồng Customer/Driver/Admin tại mobile/tablet/desktop |
+| W1 — Browser feasibility | Spike Active Tracking + Connection Recovery: web geolocation trên Safari iOS/Chrome Android, tab nền/khóa màn hình, stale 30s/unavailable 60s, permission, reconnect/snapshot, map | PO chấp nhận limitation/fallback, đặc biệt Driver tracking |
+| W2 — Architecture & UX | Triển khai thiết kế chi tiết kiến trúc **3 React/Vite frontend** đã chốt, auth web/cookie-CSRF, map renderer, navigation, responsive wireframes, shared tokens | Review luồng Customer/Driver/Admin tại mobile/tablet/desktop |
 | W3 — Web foundation | Setup frontend web, routing, auth session, API client, role gates, responsive layout/components, CI browser | Login/logout/refresh/error handling, keyboard, unit/E2E baseline |
 | W4 — Customer web | Hồ sơ, địa chỉ qua map, form tạo đơn/quote (khi API sẵn sàng), danh sách/chi tiết/tracking | Các luồng khách hoạt động mobile và desktop; không lẫn demo với production |
 | W5 — Driver web | Hồ sơ/giấy tờ, trạng thái sẵn sàng, offer/nhận đơn, trạng thái giao, map; tab suspension policy | Không giả GPS nền; freshness/fallback đã được QA |
@@ -46,8 +53,8 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 ## Task chuyển tiếp (proposal)
 
 - WEB-001: inventory/code & docs audit, dependency matrix.
-- WEB-002: feasibility browser geolocation/realtime and driver fallback ADR.
-- WEB-003: frontend consolidation architecture + auth web ADR.
+- WEB-002: đo Active Tracking + Connection Recovery, stale thresholds, browser limits và quy trình khi Driver mất GPS.
+- WEB-003: 3 React/Vite frontend + shared packages, web auth ADR; không mở lại lựa chọn 1-vs-3 nếu PO chưa đổi quyết định.
 - WEB-004: UX flows/wireframes và responsive design system.
 - WEB-005: web foundation + CI/E2E.
 - WEB-006: customer web parity.
