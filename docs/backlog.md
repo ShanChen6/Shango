@@ -1,5 +1,7 @@
 # Backlog và trạng thái thực tế
 
+> **Roadmap mới:** [Web-only responsive](roadmap-web.md); [ADR](adr-web-only.md). Bảng SG bên dưới giữ nguyên **trạng thái lịch sử**; các công việc Expo/native được thay bằng WEB-001–011 trong roadmap. Không diễn giải “có code” Expo thành “web đã hoàn thành”.
+
 Đây là foundation đầu tiên, không phải toàn bộ 72 task đã hoàn tất. Mã SG theo kế hoạch đã thống nhất trong chat.
 
 | Task       | Trạng thái                             | Phạm vi / còn thiếu                                                                                       |
