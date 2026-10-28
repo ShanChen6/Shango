@@ -1,0 +1,26 @@
+{
+  "name": "shango",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @shango/api",
+    "dev:admin": "npm run dev -w @shango/admin",
+    "dev:customer": "npm run start -w @shango/customer",
+    "dev:driver": "npm run start -w @shango/driver",
+    "build": "npm run build -w @shango/api && npm run build -w @shango/admin",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @shango/api && npm run test -w @shango/admin",
+    "test:integration": "npm run test:integration -w @shango/api",
+    "db:migrate": "npm run db:migrate -w @shango/api"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}

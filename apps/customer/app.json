@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "ShanGo Khách hàng",
+    "slug": "shango-customer",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-secure-store"],
+    "ios": { "bundleIdentifier": "com.shango.customer", "supportsTablet": false },
+    "android": { "package": "com.shango.customer" }
+  }
+}

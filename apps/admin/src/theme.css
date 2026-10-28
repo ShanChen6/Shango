@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--shango-background);
+  --color-foreground: var(--shango-foreground);
+  --color-card: var(--shango-card);
+  --color-card-foreground: var(--shango-foreground);
+  --color-primary-50: var(--shango-primary-50);
+  --color-primary-500: var(--shango-primary-500);
+  --color-primary-600: var(--shango-primary-600);
+  --color-primary-foreground: var(--shango-primary-foreground);
+  --color-muted: var(--shango-muted);
+  --color-muted-foreground: var(--shango-muted-foreground);
+  --color-border: var(--shango-border);
+  --color-ring: var(--shango-primary-500);
+  --color-destructive: var(--shango-destructive);
+  --color-destructive-foreground: #ffffff;
+  --color-success: var(--shango-success);
+  --color-warning: var(--shango-warning);
+}
+
+:root,
+[data-theme='customer'] {
+  --shango-background: #f5f8f4;
+  --shango-foreground: #173d30;
+  --shango-card: #ffffff;
+  --shango-primary-50: #e8f4ed;
+  --shango-primary-500: #116c4d;
+  --shango-primary-600: #09563b;
+  --shango-primary-foreground: #ffffff;
+  --shango-muted: #edf2ed;
+  --shango-muted-foreground: #526b5d;
+  --shango-border: #cedbd0;
+  --shango-destructive: #b42332;
+  --shango-success: #187042;
+  --shango-warning: #8b590b;
+}
+[data-theme='driver'] {
+  --shango-background: #f5f7fc;
+  --shango-foreground: #1b3359;
+  --shango-card: #ffffff;
+  --shango-primary-50: #eaf0ff;
+  --shango-primary-500: #315bbc;
+  --shango-primary-600: #234796;
+  --shango-primary-foreground: #ffffff;
+  --shango-muted: #edf1f8;
+  --shango-muted-foreground: #536580;
+  --shango-border: #ced7e7;
+  --shango-destructive: #b42332;
+  --shango-success: #187042;
+  --shango-warning: #8b590b;
+}
+[data-theme='admin'] {
+  --shango-background: #f7f6fb;
+  --shango-foreground: #35284c;
+  --shango-card: #ffffff;
+  --shango-primary-50: #f0eafa;
+  --shango-primary-500: #7042a6;
+  --shango-primary-600: #583080;
+  --shango-primary-foreground: #ffffff;
+  --shango-muted: #f0edf5;
+  --shango-muted-foreground: #685b78;
+  --shango-border: #d9cfe4;
+  --shango-destructive: #b42332;
+  --shango-success: #187042;
+  --shango-warning: #8b590b;
+}
