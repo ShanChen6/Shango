@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "ShanGo Tài xế",
+    "slug": "shango-driver",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-secure-store"],
+    "ios": { "bundleIdentifier": "com.shango.driver", "supportsTablet": false },
+    "android": { "package": "com.shango.driver" }
+  }
+}

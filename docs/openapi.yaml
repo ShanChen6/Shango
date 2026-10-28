@@ -1,0 +1,258 @@
+openapi: 3.0.3
+info:
+  title: ShanGo Foundation API
+  version: 0.1.0
+  description: Development-only foundation. No production SMS, orders, tracking or ledger yet.
+servers:
+  - url: http://localhost:3000/api/v1
+tags:
+  - name: Auth
+  - name: Drivers
+  - name: Admin
+paths:
+  /health/live:
+    get:
+      responses:
+        '200': { description: Process is alive }
+  /health/ready:
+    get:
+      responses:
+        '200': { description: PostGIS, migration and Redis ready }
+        '503': { description: Dependency unavailable }
+  /auth/otp/request:
+    post:
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, role]
+              additionalProperties: false
+              properties:
+                phone: { type: string, example: '+84901234567' }
+                role: { type: string, enum: [customer, driver] }
+      responses:
+        '200':
+          description: Development challenge, expires in 180 seconds
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  expiresIn: { type: integer }
+                  devCode: { type: string, description: Never enable this provider in production }
+        '400': { description: Invalid input }
+        '429': { description: Rate limit or cooldown }
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string, pattern: '^\d{6}$' }
+      responses:
+        '200':
+          description: Session issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { description: Invalid OTP or inactive account }
+        '429': { description: Too many verification attempts }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string, minLength: 32, maxLength: 200 }
+      responses:
+        '200':
+          description: Previous refresh consumed; replacement issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { description: Expired, revoked or already rotated }
+  /auth/me:
+    get:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Current active account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { description: Invalid or revoked session }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Current session revoked }
+        '401': { description: Invalid session }
+  /drivers/me:
+    get:
+      tags: [Drivers]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Profile or null if not submitted
+          content:
+            application/json:
+              schema:
+                allOf: [{ $ref: '#/components/schemas/DriverProfile' }]
+                nullable: true
+        '403': { description: Driver role required }
+    post:
+      tags: [Drivers]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [vehiclePlate, vehicleType]
+              properties:
+                vehiclePlate: { type: string, minLength: 4, maxLength: 20 }
+                vehicleType: { type: string, enum: [motorcycle, car] }
+      responses:
+        '201':
+          description: Profile submitted for review
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriverProfile' }
+        '403': { description: Driver role required }
+        '409': { description: Approved profile cannot be changed through this API }
+  /drivers/me/availability:
+    patch:
+      tags: [Drivers]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [available]
+              additionalProperties: false
+              properties:
+                available: { type: boolean }
+      responses:
+        '200': { description: Offline confirmed }
+        '403': { description: Approval required }
+        '409': { description: Online not implemented until SG-018 }
+  /admin/drivers:
+    get:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, approved, rejected] }
+      responses:
+        '200':
+          description: Fixed page size 20; admin or dispatcher only
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - { $ref: '#/components/schemas/DriverProfile' }
+                        - type: object
+                          properties:
+                            phone: { type: string }
+                            displayName: { type: string, nullable: true }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+        '403': { description: Insufficient role }
+  /admin/drivers/{id}/review:
+    patch:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status, expectedUpdatedAt]
+              properties:
+                status: { type: string, enum: [approved, rejected] }
+                reason:
+                  {
+                    type: string,
+                    minLength: 3,
+                    maxLength: 500,
+                    description: Required when rejected,
+                  }
+                expectedUpdatedAt: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Review committed together with audit log
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriverProfile' }
+        '400': { description: Invalid request }
+        '403': { description: Insufficient role }
+        '404': { description: Profile not found }
+        '409': { description: Stale or already reviewed profile; reload }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    User:
+      type: object
+      required: [id, phone, role, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        phone: { type: string }
+        role: { type: string, enum: [customer, driver, admin, dispatcher, accountant] }
+        displayName: { type: string, nullable: true }
+    Session:
+      type: object
+      required: [accessToken, refreshToken, user]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+    DriverProfile:
+      type: object
+      required: [userId, vehiclePlate, vehicleType, status, rejectionReason, updatedAt]
+      properties:
+        userId: { type: string, format: uuid }
+        vehiclePlate: { type: string }
+        vehicleType: { type: string, enum: [motorcycle, car] }
+        status: { type: string, enum: [pending, approved, rejected] }
+        rejectionReason: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }

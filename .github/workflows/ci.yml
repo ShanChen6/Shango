@@ -1,0 +1,51 @@
+name: Foundation CI
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop, main]
+permissions:
+  contents: read
+jobs:
+  foundation:
+    name: foundation-checks
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: shango
+          POSTGRES_DB: shango_test
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shango -d shango_test"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://shango:ci-only-password@localhost:5432/shango_test
+      REDIS_URL: redis://localhost:6379/15
+      JWT_SECRET: ci-only-jwt-secret-not-for-production-123456
+      OTP_SECRET: ci-only-otp-secret-not-for-production-654321
+      OTP_PROVIDER: development
+      CORS_ORIGINS: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run db:migrate
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npx expo export --platform android --output-dir dist-ci
+        working-directory: apps/customer
+      - run: npx expo export --platform android --output-dir dist-ci
+        working-directory: apps/driver
