@@ -1,5 +1,7 @@
 # Kiểm thử foundation
 
+> **Testing target 2026-10-28:** Web responsive trên desktop/tablet/mobile browser theo [roadmap web](roadmap-web.md). Nội dung test native/bundle Expo dưới đây là **legacy baseline**, không phải release gate tương lai. Chưa sửa CI hay test code; browser/device test cần thiết kế và thực thi ở các phase WEB.
+
 ## Tự động
 
 - Unit: cấm OTP dev ở production, tách secret, canonical E.164, lỗi cấu hình không lộ secret.

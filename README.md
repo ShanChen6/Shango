@@ -1,5 +1,7 @@
 # ShanGo
 
+> **Định hướng sản phẩm từ 28/10/2026:** ShanGo chuyển sang **web-only responsive** cho Khách hàng, Tài xế và Admin. **Chưa triển khai chuyển đổi code**: Customer/Driver trong repository vẫn là Expo/React Native (legacy). Xem [quyết định chuyển nền tảng](docs/adr-web-only.md) và [roadmap web](docs/roadmap-web.md). Các hướng dẫn Expo bên dưới là trạng thái *as-built* trước migration, không phải hướng phát triển mới.
+
 Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị viên.
 
 **Nhánh phát triển: `develop`. `main` chỉ nhận code sau Pull Request đã review.**
