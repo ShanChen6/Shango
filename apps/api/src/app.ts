@@ -4,6 +4,8 @@ import { Cache, Database } from './database';
 import { AccessGuard } from './security';
 import { AdminDriversController, DriversController } from './drivers';
 import { MapsController, MapsService } from './maps';
+import { ProfilesController } from './profiles';
+import { AuditController } from './audit';
 
 @Controller('health')
 class HealthController {
@@ -19,7 +21,7 @@ class HealthController {
       await Promise.all([
         this.database.pool
           .query(
-            "SELECT postgis_version(), (SELECT version FROM schema_migrations WHERE version='001_foundation.sql') AS migration",
+            "SELECT postgis_version(), (SELECT version FROM schema_migrations WHERE version='002_profiles_and_audit.sql') AS migration",
           )
           .then((result) => {
             if (!result.rows[0]?.migration) throw new Error('Migration missing');
@@ -39,6 +41,8 @@ class HealthController {
     DriversController,
     AdminDriversController,
     MapsController,
+    ProfilesController,
+    AuditController,
   ],
   providers: [Database, Cache, AuthService, AccessGuard, MapsService],
 })

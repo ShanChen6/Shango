@@ -11,6 +11,9 @@ import type {
   MapPlace,
   MapSearch,
   MapRoute,
+  UserProfile,
+  AuditFilters,
+  AuditPage,
 } from '@shango/contracts';
 
 export class ApiError extends Error {
@@ -94,6 +97,13 @@ export function createApi(baseUrl: string, store: SessionStore) {
       return session;
     },
     me: () => request<User>('/auth/me'),
+    profile: () => request<UserProfile>('/users/me'),
+    updateProfile: (displayName: string, expectedVersion: number) =>
+      request<UserProfile>('/users/me', 'PATCH', { displayName, expectedVersion }),
+    auditLogs: (filters: AuditFilters = {}, cursor?: string) =>
+      request<AuditPage>(
+        `/admin/audit-logs?${new URLSearchParams({ ...filters, ...(cursor ? { cursor } : {}) })}`,
+      ),
     mapConfig: () => request<MapConfig>('/maps/config'),
     searchPlaces: (q: string) => request<MapSearch>(`/maps/search?${new URLSearchParams({ q })}`),
     reversePlace: (position: Coordinate) =>

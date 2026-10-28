@@ -5,6 +5,7 @@ import type { DriverReviewItem, Page, Session } from '@shango/contracts';
 import './style.css';
 import { ThemeShowcase } from './components/theme-showcase';
 import { MapPlayground } from './components/map-playground';
+import { AuditLogViewer } from './components/audit-log-viewer';
 
 let currentSession: Session | null = null;
 const api = createApi(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1', {
@@ -16,7 +17,7 @@ const api = createApi(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api
 const labels = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' };
 function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'drivers' | 'maps'>('drivers');
+  const [view, setView] = useState<'drivers' | 'maps' | 'audit'>('drivers');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [challenge, setChallenge] = useState(false);
@@ -93,6 +94,16 @@ function App() {
         >
           Bản đồ Hà Nội
         </button>
+        {session?.user.role === 'admin' && (
+          <button
+            type="button"
+            className="nav"
+            aria-pressed={view === 'audit'}
+            onClick={() => setView('audit')}
+          >
+            Nhật ký thao tác
+          </button>
+        )}
         <div className="sidebar-note">
           Nền tảng phát triển
           <br />
@@ -107,7 +118,9 @@ function App() {
               {session
                 ? view === 'maps'
                   ? 'Bản đồ Hà Nội'
-                  : 'Duyệt hồ sơ tài xế'
+                  : view === 'audit'
+                    ? 'Nhật ký thao tác'
+                    : 'Duyệt hồ sơ tài xế'
                 : 'Đăng nhập quản trị'}
             </h1>
           </div>
@@ -122,6 +135,7 @@ function App() {
                   } finally {
                     setSession(null);
                     setData(null);
+                    setView('drivers');
                   }
                 })
               }
@@ -152,6 +166,7 @@ function App() {
                     throw new Error('Tài khoản chưa có quyền quản trị. Liên hệ người quản lý.');
                   }
                   setSession(value);
+                  setView('drivers');
                   setDevCode('');
                   setCode('');
                 }
@@ -206,6 +221,8 @@ function App() {
           </form>
         ) : view === 'maps' ? (
           <MapPlayground api={api} />
+        ) : view === 'audit' && session.user.role === 'admin' ? (
+          <AuditLogViewer api={api} />
         ) : (
           <>
             <section className="summary card">
