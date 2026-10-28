@@ -85,6 +85,7 @@ Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS nativ
 ## Tài liệu
 
 - [Kiến trúc và quyết định còn mở](docs/architecture.md)
+- [WEB-001: baseline audit, dependency matrix và task breakdown](docs/web-001-audit.md)
 - [Backlog và phạm vi đã thực hiện](docs/backlog.md)
 - [Nhánh và review](docs/branch-policy.md)
 - [Kế hoạch kiểm thử](docs/test-plan.md)

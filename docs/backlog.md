@@ -2,6 +2,10 @@
 
 > **Roadmap mới:** [Web-only responsive](roadmap-web.md); [ADR](adr-web-only.md). Bảng SG bên dưới giữ nguyên **trạng thái lịch sử**; các công việc Expo/native được thay bằng WEB-001–011 trong roadmap. Không diễn giải “có code” Expo thành “web đã hoàn thành”.
 
+Phần native bị thay thế trong SG-003/005/006/008/010/014 được ánh xạ cụ thể tại
+[WEB-001 baseline audit](web-001-audit.md#phạm-vi-native-bị-roadmap-web-thay-thế).
+Các trạng thái bên dưới vẫn là bằng chứng lịch sử, không phải target triển khai mới.
+
 Đây là foundation đầu tiên, không phải toàn bộ 72 task đã hoàn tất. Mã SG theo kế hoạch đã thống nhất trong chat.
 
 | Task       | Trạng thái                             | Phạm vi / còn thiếu                                                                                       |
