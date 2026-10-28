@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShanGo WEB-002 tracking spike</title>
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { margin: 0; background: #eef4ef; color: #153e32; }
+      main { width: min(1100px, calc(100% - 32px)); margin: 24px auto 64px; }
+      h1 { margin-bottom: 8px; }
+      .intro { max-width: 850px; line-height: 1.55; }
+      .warning { padding: 12px; border-left: 4px solid #b26a00; background: #fff4d6; color: #5c3d00; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
+      section { background: white; border: 1px solid #cfddd3; border-radius: 12px; padding: 16px; }
+      dl { display: grid; grid-template-columns: 1fr 1.3fr; gap: 8px; margin: 0; }
+      dt { color: #60786c; } dd { margin: 0; font-weight: 650; overflow-wrap: anywhere; }
+      button { min-height: 44px; padding: 8px 13px; margin: 4px; border: 0; border-radius: 8px; background: #0b684b; color: white; font-weight: 700; cursor: pointer; }
+      button.secondary { background: #64776e; }
+      button.danger { background: #a33b34; }
+      button:disabled { opacity: .45; cursor: not-allowed; }
+      .fresh { color: #08734e; } .stale { color: #a65d00; } .unavailable { color: #a32f2f; }
+      pre { max-height: 360px; overflow: auto; background: #102a22; color: #d8f3e7; border-radius: 8px; padding: 12px; font-size: 12px; }
+      ol { padding-left: 22px; line-height: 1.6; }
+      @media (prefers-reduced-motion: no-preference) { button { transition: opacity .15s; } }
+      @media (prefers-color-scheme: dark) {
+        body { background: #0e1f19; color: #e2eee7; }
+        section { background: #172a23; border-color: #385046; }
+        .warning { background: #493914; color: #ffe5a3; }
+        dt { color: #a9bdb2; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>WEB-002 · Active Tracking + Connection Recovery</h1>
+      <p class="intro">
+        Prototype này trả lời: browser phát vị trí với nhịp và độ chính xác nào khi foreground,
+        background, khóa màn hình và mất mạng; sau reconnect, snapshot authoritative có khôi phục
+        đúng trạng thái không? Đây là công cụ đo, không phải production tracking.
+      </p>
+      <p class="warning">
+        Không suy diễn Socket “connected” thành GPS còn tươi. Giả thuyết cần đo: mục tiêu 5–10s,
+        stale sau 30s và unavailable sau 60s. Browser có thể ngừng hoàn toàn khi OS suspend tab.
+      </p>
+
+      <div class="grid">
+        <section>
+          <h2>Trạng thái hiện tại</h2>
+          <dl id="state"></dl>
+        </section>
+        <section>
+          <h2>Điều khiển</h2>
+          <button id="start">Bắt đầu GPS</button>
+          <button id="stop" class="secondary">Dừng GPS</button>
+          <button id="disconnect" class="danger">Ngắt transport</button>
+          <button id="reconnect">Reconnect + snapshot</button>
+          <button id="export" class="secondary">Copy evidence đã khử tọa độ</button>
+          <button id="clear" class="secondary">Xóa log</button>
+          <p><small>Chuyển app/tab, khóa màn hình, bật airplane mode rồi quay lại để quan sát.</small></p>
+        </section>
+        <section>
+          <h2>Kịch bản hướng dẫn</h2>
+          <ol>
+            <li>Foreground: chạy GPS ≥ 2 phút, ghi interval/accuracy.</li>
+            <li>Background: chuyển tab/app 2 phút, quay lại và ghi gap lớn nhất.</li>
+            <li>Lock: khóa màn hình 2 phút, mở lại và ghi gap/recovery.</li>
+            <li>Offline: bật airplane mode 45 giây; xác nhận stale, reconnect và snapshot.</li>
+            <li>Permission denied: reset permission, từ chối và ghi lỗi/UX.</li>
+            <li>Battery: chạy 15 phút foreground, ghi mức pin trước/sau nếu Battery API có.</li>
+          </ol>
+        </section>
+      </div>
+
+      <section style="margin-top: 14px">
+        <h2>Event log (copy vào evidence sheet)</h2>
+        <pre id="log" aria-live="polite"></pre>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // Pure state model: no DOM access or event handlers in this block.
+      function initialState(environment) {
+        return {
+          permission: 'unknown', watching: false, watchId: null,
+          socket: 'disconnected', snapshotReady: false, online: environment.online,
+          visibility: environment.visibility, sequence: 0,
+          lastPosition: null, previousRecordedAt: null, intervalMs: null,
+          freshness: 'unavailable', lastAck: null, lastSnapshot: null,
+          battery: 'unsupported', error: null,
+        };
+      }
+      function reduce(state, event) {
+        const next = { ...state, error: event.error ?? state.error };
+        if (event.type === 'watch-started') return { ...next, watching: true, watchId: event.watchId, error: null };
+        if (event.type === 'watch-stopped') return { ...next, watching: false, watchId: null };
+        if (event.type === 'position') {
+          const intervalMs = state.lastPosition ? Date.parse(event.sample.recordedAt) - Date.parse(state.lastPosition.recordedAt) : null;
+          return { ...next, permission: 'granted', previousRecordedAt: state.lastPosition?.recordedAt ?? null, lastPosition: event.sample, intervalMs, freshness: 'fresh', error: null };
+        }
+        if (event.type === 'position-sent') return { ...next, sequence: event.sample.sequence, lastPosition: event.sample };
+        if (event.type === 'permission') return { ...next, permission: event.value };
+        if (event.type === 'socket') return { ...next, socket: event.value, snapshotReady: event.value === 'connected' ? state.snapshotReady : false };
+        if (event.type === 'network') return { ...next, online: event.value };
+        if (event.type === 'visibility') return { ...next, visibility: event.value };
+        if (event.type === 'ack') return { ...next, lastAck: event.value };
+        if (event.type === 'snapshot') {
+          const snapshot = event.value;
+          const useSnapshotPosition = snapshot && (!state.lastPosition || Date.parse(snapshot.recordedAt) > Date.parse(state.lastPosition.recordedAt));
+          return {
+            ...next,
+            snapshotReady: true,
+            lastSnapshot: snapshot,
+            sequence: Math.max(state.sequence, snapshot?.sequence ?? 0),
+            lastPosition: useSnapshotPosition ? snapshot : state.lastPosition,
+          };
+        }
+        if (event.type === 'battery') return { ...next, battery: event.value };
+        if (event.type === 'tick') {
+          const age = state.lastPosition ? event.now - Date.parse(state.lastPosition.recordedAt) : Infinity;
+          return { ...next, freshness: age >= 60000 ? 'unavailable' : age >= 30000 ? 'stale' : 'fresh' };
+        }
+        return next;
+      }
+
+      let state = initialState({ online: navigator.onLine, visibility: document.visibilityState });
+      let events = [];
+      let socket = null;
+      let pendingSample = null;
+
+      function dispatch(event) {
+        const previousFreshness = state.freshness;
+        state = reduce(state, event);
+        const shouldLog = event.type !== 'tick' || state.freshness !== previousFreshness;
+        if (shouldLog) {
+          events.push({ at: new Date().toISOString(), event, state: { ...state, watchId: state.watchId == null ? null : 'active' } });
+          events = events.slice(-500);
+          renderLog();
+        }
+        renderState();
+      }
+      function renderState() {
+        const age = state.lastPosition ? Math.max(0, Date.now() - Date.parse(state.lastPosition.recordedAt)) : null;
+        const rows = {
+          'Secure context': window.isSecureContext,
+          'Permission': state.permission,
+          'GPS watch': state.watching ? 'active' : 'stopped',
+          'Freshness': state.freshness,
+          'Vị trí cuối': state.lastPosition ? `${state.lastPosition.latitude.toFixed(6)}, ${state.lastPosition.longitude.toFixed(6)}` : '—',
+          'Accuracy': state.lastPosition ? `${Math.round(state.lastPosition.accuracy)} m` : '—',
+          'Tuổi vị trí': age == null ? '—' : `${Math.round(age / 1000)} s`,
+          'Interval cuối': state.intervalMs == null ? '—' : `${(state.intervalMs / 1000).toFixed(1)} s`,
+          'Sequence': state.sequence,
+          'Socket': state.socket,
+          'Snapshot ready': state.snapshotReady,
+          'Network': state.online ? 'online' : 'offline',
+          'Visibility': state.visibility,
+          'Battery': state.battery,
+          'Ack cuối': state.lastAck ? JSON.stringify(state.lastAck) : '—',
+          'Snapshot': state.lastSnapshot ? `seq ${state.lastSnapshot.sequence}` : '—',
+          'Lỗi': state.error ?? '—',
+        };
+        document.querySelector('#state').innerHTML = Object.entries(rows).map(([key, value]) => `<dt>${key}</dt><dd class="${key === 'Freshness' ? state.freshness : ''}">${value}</dd>`).join('');
+      }
+      function renderLog() {
+        document.querySelector('#log').textContent = events.map((item) => JSON.stringify(item)).join('\n');
+      }
+      function sanitizedEvidence() {
+        return events.map((item) => ({
+          at: item.at,
+          eventType: item.event.type,
+          recordedAt: item.event.sample?.recordedAt ?? null,
+          accuracy: item.event.sample?.accuracy ?? null,
+          permission: item.state.permission,
+          socket: item.state.socket,
+          snapshotReady: item.state.snapshotReady,
+          online: item.state.online,
+          visibility: item.state.visibility,
+          sequence: item.state.sequence,
+          intervalMs: item.state.intervalMs,
+          freshness: item.state.freshness,
+          battery: item.state.battery,
+          error: item.state.error,
+        }));
+      }
+      function resumeTracking() {
+        socket.timeout(5000).emit('tracking:resume', (error, response) => {
+          if (error) {
+            dispatch({ type: 'socket', value: 'reconnecting', error: 'snapshot timeout' });
+            return;
+          }
+          dispatch({ type: 'snapshot', value: response.snapshot });
+          if (pendingSample) {
+            const latest = pendingSample;
+            pendingSample = null;
+            send(latest);
+          }
+        });
+      }
+      function connect() {
+        socket?.disconnect();
+        dispatch({ type: 'socket', value: 'connecting' });
+        socket = io({ auth: { driverId: 'prototype-driver' }, reconnection: true, reconnectionDelay: 1000 });
+        socket.on('connect', () => {
+          dispatch({ type: 'socket', value: 'connected' });
+          resumeTracking();
+        });
+        socket.on('disconnect', (reason) => dispatch({ type: 'socket', value: `disconnected: ${reason}` }));
+        socket.on('connect_error', (error) => dispatch({ type: 'socket', value: 'reconnecting', error: error.message }));
+      }
+      function send(sample) {
+        if (!socket?.connected || !state.snapshotReady) {
+          pendingSample = sample;
+          return;
+        }
+        const outgoing = { ...sample, sequence: state.sequence + 1 };
+        dispatch({ type: 'position-sent', sample: outgoing });
+        socket.timeout(5000).emit('location:update', outgoing, (error, response) => {
+          dispatch({ type: 'ack', value: error ? { accepted: false, reason: 'timeout' } : response });
+        });
+      }
+      function startWatch() {
+        if (!window.isSecureContext || !navigator.geolocation) {
+          dispatch({ type: 'permission', value: 'unavailable', error: 'Geolocation cần secure context/HTTPS.' });
+          return;
+        }
+        if (state.watching) return;
+        const watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const sample = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              altitude: position.coords.altitude,
+              heading: position.coords.heading,
+              speed: position.coords.speed,
+              recordedAt: new Date(position.timestamp).toISOString(),
+            };
+            dispatch({ type: 'position', sample });
+            send(sample);
+          },
+          (error) => dispatch({ type: 'permission', value: error.code === 1 ? 'denied' : 'error', error: `${error.code}: ${error.message}` }),
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
+        );
+        dispatch({ type: 'watch-started', watchId });
+      }
+      function stopWatch() {
+        if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
+        dispatch({ type: 'watch-stopped' });
+      }
+
+      document.querySelector('#start').onclick = startWatch;
+      document.querySelector('#stop').onclick = stopWatch;
+      document.querySelector('#disconnect').onclick = () => socket?.emit('prototype:disconnect-transport');
+      document.querySelector('#reconnect').onclick = connect;
+      document.querySelector('#export').onclick = async () => {
+        await navigator.clipboard.writeText(sanitizedEvidence().map((item) => JSON.stringify(item)).join('\n'));
+        document.querySelector('#export').textContent = 'Đã copy evidence an toàn';
+      };
+      document.querySelector('#clear').onclick = () => { events = []; renderLog(); };
+      window.addEventListener('online', () => dispatch({ type: 'network', value: true }));
+      window.addEventListener('offline', () => dispatch({ type: 'network', value: false }));
+      document.addEventListener('visibilitychange', () => dispatch({ type: 'visibility', value: document.visibilityState }));
+      navigator.permissions?.query({ name: 'geolocation' }).then((result) => {
+        dispatch({ type: 'permission', value: result.state });
+        result.onchange = () => dispatch({ type: 'permission', value: result.state });
+      }).catch(() => {});
+      navigator.getBattery?.().then((battery) => {
+        const update = () => dispatch({ type: 'battery', value: `${Math.round(battery.level * 100)}%${battery.charging ? ' charging' : ''}` });
+        update(); battery.addEventListener('levelchange', update); battery.addEventListener('chargingchange', update);
+      });
+      setInterval(() => dispatch({ type: 'tick', now: Date.now() }), 1000);
+      connect(); renderState(); renderLog();
+    </script>
+  </body>
+</html>
