@@ -1,0 +1,15 @@
+{
+  "name": "shango-web-004-ux-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite --host 127.0.0.1 --port 4174",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vite": "^7.3.7",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {}
+}
