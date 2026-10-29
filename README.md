@@ -87,6 +87,7 @@ Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS nativ
 - [Kiến trúc và quyết định còn mở](docs/architecture.md)
 - [WEB-001: baseline audit, dependency matrix và task breakdown](docs/web-001-audit.md)
 - [ADR-002: ba frontend web và auth cookie-CSRF](docs/adr-web-architecture-auth.md)
+- [WEB-004: UX flows, responsive variants và design-system proposal](docs/web-004-ux-flows.md)
 - [Backlog và phạm vi đã thực hiện](docs/backlog.md)
 - [Nhánh và review](docs/branch-policy.md)
 - [Kế hoạch kiểm thử](docs/test-plan.md)
