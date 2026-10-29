@@ -55,8 +55,12 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-001: **Hoàn tất audit** — inventory/code & docs audit, dependency matrix; xem
   [baseline audit và task breakdown](web-001-audit.md). Không có migration code trong task này.
 - WEB-002: đo Active Tracking + Connection Recovery, stale thresholds, browser limits và quy trình khi Driver mất GPS.
-- WEB-003: 3 React/Vite frontend + shared packages, web auth ADR; không mở lại lựa chọn 1-vs-3 nếu PO chưa đổi quyết định.
-- WEB-004: UX flows/wireframes và responsive design system.
+- WEB-003: **ADR đề xuất đang chờ review** — 3 React/Vite frontend + shared packages,
+  route/deploy boundaries và web auth cookie-CSRF; xem [ADR-002](adr-web-architecture-auth.md).
+  Không mở lại lựa chọn 1-vs-3 nếu PO chưa đổi quyết định.
+- WEB-004: **Prototype sẵn sàng review** — UX flows, 3 responsive wireframe variants và
+  web design-system proposal; xem [WEB-004 UX flows](web-004-ux-flows.md). Chưa chọn
+  winning pattern hoặc đưa prototype vào production bundle.
 - WEB-005: web foundation + CI/E2E.
 - WEB-006: customer web parity.
 - WEB-007: driver web parity.
