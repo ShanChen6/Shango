@@ -12,13 +12,17 @@ describe('createWebApi', () => {
   it('sends app identity during OTP login and keeps tokens in memory', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json(session('access-1')));
     const api = createWebApi('https://api.example/api/v1', {
-      app: 'customer', allowedRoles: ['customer'], fetch: fetcher,
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
     });
 
     await expect(api.verifyOtp('+84900000000', '123456')).resolves.toMatchObject({ user });
     const request = fetcher.mock.calls[0];
     expect(JSON.parse(String(request[1]?.body))).toEqual({
-      phone: '+84900000000', code: '123456', app: 'customer',
+      phone: '+84900000000',
+      code: '123456',
+      app: 'customer',
     });
     expect(request[1]?.credentials).toBe('include');
     expect(api.getSession()?.accessToken).toBe('access-1');
@@ -26,15 +30,19 @@ describe('createWebApi', () => {
 
   it('rejects a wrong-role session before rendering protected routes', async () => {
     const invalidated = vi.fn();
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      json({ ...session('access-1'), user: { ...user, role: 'driver' } }),
-    );
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ ...session('access-1'), user: { ...user, role: 'driver' } }));
     const api = createWebApi('/api/v1', {
-      app: 'customer', allowedRoles: ['customer'], fetch: fetcher, onSessionInvalid: invalidated,
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
+      onSessionInvalid: invalidated,
     });
 
     await expect(api.verifyOtp('+84900000000', '123456')).rejects.toMatchObject({
-      status: 403, code: 'ROLE_MISMATCH',
+      status: 403,
+      code: 'ROLE_MISMATCH',
     });
     expect(api.getSession()).toBeNull();
     expect(invalidated).toHaveBeenCalledOnce();
@@ -45,20 +53,26 @@ describe('createWebApi', () => {
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
       if (url.endsWith('/auth/web/csrf')) return json({ csrfToken: 'csrf-1' });
-      if (url.endsWith('/auth/web/refresh')) return json(session(protectedCalls ? 'access-2' : 'access-1'));
+      if (url.endsWith('/auth/web/refresh'))
+        return json(session(protectedCalls ? 'access-2' : 'access-1'));
       protectedCalls += 1;
       if (protectedCalls <= 2) return json({ message: 'expired' }, 401);
       return json({ ok: true });
     });
     const api = createWebApi('/api/v1', {
-      app: 'customer', allowedRoles: ['customer'], fetch: fetcher,
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
     });
     await api.bootstrap();
 
     await expect(Promise.all([api.request('/one'), api.request('/two')])).resolves.toEqual([
-      { ok: true }, { ok: true },
+      { ok: true },
+      { ok: true },
     ]);
-    expect(fetcher.mock.calls.filter(([url]) => String(url).endsWith('/auth/web/refresh'))).toHaveLength(2);
+    expect(
+      fetcher.mock.calls.filter(([url]) => String(url).endsWith('/auth/web/refresh')),
+    ).toHaveLength(2);
   });
 
   it('reuses a newly rotated token when a delayed 401 arrives', async () => {
@@ -66,41 +80,89 @@ describe('createWebApi', () => {
     const fetcher = vi.fn<typeof fetch>(async (input, init) => {
       const url = String(input);
       if (url.endsWith('/auth/web/csrf')) return json({ csrfToken: 'csrf-1' });
-      if (url.endsWith('/auth/web/refresh')) return json(session(protectedCalls ? 'access-2' : 'access-1'));
+      if (url.endsWith('/auth/web/refresh'))
+        return json(session(protectedCalls ? 'access-2' : 'access-1'));
       protectedCalls += 1;
-      if (protectedCalls === 2) await new Promise(resolve => setTimeout(resolve, 10));
-      if (String(new Headers(init?.headers).get('Authorization')).includes('access-1')) return json({ message: 'expired' }, 401);
+      if (protectedCalls === 2) await new Promise((resolve) => setTimeout(resolve, 10));
+      if (String(new Headers(init?.headers).get('Authorization')).includes('access-1'))
+        return json({ message: 'expired' }, 401);
       return json({ ok: true });
     });
-    const api = createWebApi('/api/v1', { app: 'customer', allowedRoles: ['customer'], fetch: fetcher });
+    const api = createWebApi('/api/v1', {
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
+    });
     await api.bootstrap();
 
-    await expect(Promise.all([api.request('/one'), api.request('/two')])).resolves.toEqual([{ ok: true }, { ok: true }]);
-    expect(fetcher.mock.calls.filter(([url]) => String(url).endsWith('/auth/web/refresh'))).toHaveLength(2);
+    await expect(Promise.all([api.request('/one'), api.request('/two')])).resolves.toEqual([
+      { ok: true },
+      { ok: true },
+    ]);
+    expect(
+      fetcher.mock.calls.filter(([url]) => String(url).endsWith('/auth/web/refresh')),
+    ).toHaveLength(2);
   });
 
   it('does not replay a non-idempotent mutation after 401', async () => {
-    const fetcher = vi.fn<typeof fetch>()
+    const fetcher = vi
+      .fn<typeof fetch>()
       .mockResolvedValueOnce(json(session('access-1')))
       .mockResolvedValueOnce(json({ message: 'expired' }, 401));
-    const api = createWebApi('/api/v1', { app: 'customer', allowedRoles: ['customer'], fetch: fetcher });
+    const api = createWebApi('/api/v1', {
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
+    });
     await api.verifyOtp('+84900000000', '123456');
 
-    await expect(api.request('/orders', { method: 'POST', body: '{}' })).rejects.toMatchObject({ status: 401 });
+    await expect(api.request('/orders', { method: 'POST', body: '{}' })).rejects.toMatchObject({
+      status: 401,
+    });
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it('exposes the server request ID on API errors', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(session('access-1')))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: 'failed' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json', 'X-Request-Id': 'req-profile-1' },
+        }),
+      );
+    const api = createWebApi('/api/v1', {
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
+    });
+    await api.verifyOtp('+84900000000', '123456');
+
+    await expect(api.request('/profile')).rejects.toMatchObject({
+      status: 503,
+      requestId: 'req-profile-1',
+    });
+  });
+
   it('replays an explicitly classified mutation after auth refresh', async () => {
-    const fetcher = vi.fn<typeof fetch>()
+    const fetcher = vi
+      .fn<typeof fetch>()
       .mockResolvedValueOnce(json(session('access-1')))
       .mockResolvedValueOnce(json({ message: 'expired' }, 401))
       .mockResolvedValueOnce(json({ csrfToken: 'csrf-2' }))
       .mockResolvedValueOnce(json(session('access-2')))
       .mockResolvedValueOnce(json({ updated: true }));
-    const api = createWebApi('/api/v1', { app: 'customer', allowedRoles: ['customer'], fetch: fetcher });
+    const api = createWebApi('/api/v1', {
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
+    });
     await api.verifyOtp('+84900000000', '123456');
 
-    await expect(api.request('/profile', { method: 'PATCH', body: '{}', retryOnAuth: true })).resolves.toEqual({ updated: true });
+    await expect(
+      api.request('/profile', { method: 'PATCH', body: '{}', retryOnAuth: true }),
+    ).resolves.toEqual({ updated: true });
     expect(fetcher).toHaveBeenCalledTimes(5);
   });
 
@@ -111,7 +173,10 @@ describe('createWebApi', () => {
       .mockResolvedValueOnce(json(session('access-1')))
       .mockResolvedValueOnce(json({ message: 'network edge failed' }, 503));
     const api = createWebApi('/api/v1', {
-      app: 'customer', allowedRoles: ['customer'], fetch: fetcher, onSessionInvalid: invalidated,
+      app: 'customer',
+      allowedRoles: ['customer'],
+      fetch: fetcher,
+      onSessionInvalid: invalidated,
     });
     await api.verifyOtp('+84900000000', '123456');
 
