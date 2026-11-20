@@ -19,6 +19,9 @@ import type {
   DocumentUpload,
 } from '@shango/contracts';
 
+export { createWebApi, WebApiError } from './web';
+export type { WebApp, WebRequestInit, WebSession } from './web';
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
