@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts"
@@ -13,11 +14,14 @@
     "@radix-ui/react-slot": "^1.5.0",
     "@shango/api-client": "0.1.0",
     "@shango/contracts": "0.1.0",
+    "@shango/ui": "0.1.0",
+    "@tanstack/react-query": "^5.90.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-router-dom": "^7.9.6",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
