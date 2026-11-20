@@ -1,0 +1,2 @@
+@import '@shango/ui/src/tokens.css';
+.login-page { width: min(100% - 2rem, 34rem); margin: 0 auto; padding: 4rem 0; }.login-page form { display: grid; gap: 1rem; }.grid { display: grid; gap: 1rem; }.grid h2 { margin-bottom: .5rem; } @media (min-width: 48rem) { .grid { grid-template-columns: 1.2fr .8fr; } }
