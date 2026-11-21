@@ -133,6 +133,8 @@ jobs:
           cp deploy/staging.env.example deploy/ci.env
           sed -i 's/^\([A-Z_]*_SECRET\|POSTGRES_PASSWORD\|METRICS_TOKEN\)=$/\1=ci-placeholder-value-not-a-secret-0123456789/' deploy/ci.env
           docker compose -f deploy/compose.staging.yaml --env-file deploy/ci.env --profile monitoring config --quiet
+      - name: Check deploy scripts syntax
+        run: for f in deploy/*.sh; do bash -n "$f"; done
       - name: Validate Prometheus alert rules
         run: |
           docker run --rm --entrypoint promtool -v "$PWD/deploy/prometheus:/p:ro" -w /p prom/prometheus:v3.5.0 check rules alerts.yml
