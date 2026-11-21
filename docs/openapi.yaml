@@ -104,7 +104,94 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         '204': { description: Current session revoked }
+        '400': { description: Mixed credentials (web refresh cookie present) }
         '401': { description: Invalid session }
+  /auth/web/otp/request:
+    post:
+      tags: [Auth]
+      description: >-
+        Web transport (ADR-002). Requires an exact allowlisted Origin. Role is derived from `app`;
+        the Admin app never registers accounts. 503 when WEB_AUTH_ENABLED=false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phone, app]
+              properties:
+                phone: { type: string, example: '+84901234567' }
+                app: { type: string, enum: [customer, driver, admin] }
+      responses:
+        '200': { description: Challenge created (devCode only with the development provider) }
+        '403': { description: Origin not allowed }
+        '429': { description: Rate limited }
+        '503': { description: Web auth disabled; clears refresh cookie }
+  /auth/web/otp/verify:
+    post:
+      tags: [Auth]
+      description: >-
+        Sets `__Host-shango-refresh` (Secure; HttpOnly; SameSite=Lax; Path=/). The refresh token is
+        never returned in JSON. Wrong app/role fails before any session is created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phone, code, app]
+              properties:
+                phone: { type: string }
+                code: { type: string, pattern: '^\d{6}$' }
+                app: { type: string, enum: [customer, driver, admin] }
+      responses:
+        '200':
+          description: Access token, CSRF token and user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebSession' }
+        '401': { description: Invalid/expired OTP or account not usable in this app (generic) }
+        '403': { description: Origin not allowed }
+  /auth/web/csrf:
+    get:
+      tags: [Auth]
+      description: 'Authenticated by the refresh cookie. Cache-Control: no-store.'
+      responses:
+        '200':
+          description: Session-bound CSRF token
+          content:
+            application/json:
+              schema: { type: object, properties: { csrfToken: { type: string } } }
+        '401': { description: No live web session }
+        '403': { description: Origin present but not allowed }
+  /auth/web/refresh:
+    post:
+      tags: [Auth]
+      description: 'Requires refresh cookie, exact Origin and X-CSRF-Token. Rotates the cookie atomically.'
+      parameters:
+        - { in: header, name: X-CSRF-Token, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: New access token; rotated cookie
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebSession' }
+        '400': { description: Body or Authorization header present (mixed credentials) }
+        '401': { description: Missing, rotated, revoked or expired session }
+        '403': { description: Invalid CSRF token or Origin }
+  /auth/web/logout:
+    post:
+      tags: [Auth]
+      description: >-
+        CSRF is checked before a live session is revoked; on failure nothing is revoked or cleared.
+        Absent/dead cookies are cleared idempotently.
+      parameters:
+        - { in: header, name: X-CSRF-Token, required: false, schema: { type: string } }
+      responses:
+        '204': { description: Session revoked (if live) and cookie cleared }
+        '403': { description: Invalid CSRF token or Origin }
   /drivers/me:
     get:
       tags: [Drivers]
@@ -590,6 +677,19 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    WebSession:
+      type: object
+      required: [accessToken, csrfToken, user]
+      properties:
+        accessToken: { type: string, description: 'JWT, 15 minutes, keep in memory only' }
+        csrfToken: { type: string, description: 'HMAC bound to the session id' }
+        user:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            phone: { type: string }
+            role: { type: string, enum: [customer, driver, admin, dispatcher, accountant] }
+            displayName: { type: string, nullable: true }
     DocumentKind:
       type: string
       enum: [identity_front, identity_back, driver_license, vehicle_registration]

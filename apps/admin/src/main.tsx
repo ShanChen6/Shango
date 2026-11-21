@@ -13,14 +13,16 @@ import { createAdminWebApi } from './lib/admin-web-api';
 
 let currentSession: Session | null = null;
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
+const webAuthEnabled = import.meta.env.VITE_WEB_AUTH_ENABLED === 'true';
+// Cookie auth needs a same-site API: default to the Vite/ingress proxy when web auth is on.
+const apiBaseUrl =
+  import.meta.env.VITE_API_URL ?? (webAuthEnabled ? '/api/v1' : 'http://localhost:3000/api/v1');
 const legacyApi = createApi(apiBaseUrl, {
   get: async () => currentSession,
   set: async (value) => {
     currentSession = value;
   },
 });
-const webAuthEnabled = import.meta.env.VITE_WEB_AUTH_ENABLED === 'true';
 const adminWebApi = createAdminWebApi(apiBaseUrl, () => { currentSession = null; queryClient.clear(); });
 const api = webAuthEnabled
   ? adminWebApi

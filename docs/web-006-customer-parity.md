@@ -25,7 +25,8 @@
 - [x] Responsive Task-first + Map-first screen ở 320px, 768px và 1440px.
 - [x] Native keyboard controls, labels, 44px controls, attribution và text alternative cho map.
 - [x] Unit + Playwright evidence với API mock.
-- [ ] Contract E2E với `/auth/web/*` server thật — phụ thuộc additive backend slice.
+- [ ] Contract E2E tự động với `/auth/web/*` server thật trong CI. Backend đã có
+  ([web auth server](web-auth-server.md)) và đã smoke thủ công local; còn thiếu job CI có DB.
 - [ ] Quote/order/list/detail/tracking — phụ thuộc WEB-009.
 
 WEB-006 không phải lý do để xóa `apps/customer`, `packages/mobile-ui` hoặc Expo CI. Parity

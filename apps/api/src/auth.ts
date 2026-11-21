@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -19,6 +20,7 @@ import { Cache, Database } from './database';
 import { loadConfig } from './config';
 import { parse, phoneSchema, publicRoleSchema } from './validation';
 import { AccessGuard, Account, AuthRequest } from './security';
+import { REFRESH_COOKIE } from './web-auth-policy';
 
 export const CONSUME_OTP = `
 local hash = redis.call('HGET', KEYS[1], 'hash')
@@ -43,10 +45,10 @@ function identity(value: string) {
 function otpHash(phone: string, code: string) {
   return identity(`${phone}:${code}`);
 }
-function publicUser(user: Account) {
+export function publicUser(user: Account) {
   return { id: user.id, phone: user.phone, role: user.role, displayName: user.display_name };
 }
-function accessToken(userId: string, sessionId: string) {
+export function accessToken(userId: string, sessionId: string) {
   return jwt.sign({ sid: sessionId }, loadConfig().JWT_SECRET, {
     algorithm: 'HS256',
     subject: userId,
@@ -67,7 +69,8 @@ export class AuthService {
     const count = Number(await this.cache.redis.eval(INCREMENT_LIMIT, 1, key, String(seconds)));
     if (count > maximum) throw new HttpException('Too many attempts. Try again later.', 429);
   }
-  async requestOtp(phone: string, role: string, ip: string) {
+  /** `marker` is a legacy public role or a `web:<app>` marker; the two never interoperate. */
+  async requestOtp(phone: string, marker: string, ip: string) {
     await this.limit(`otp:ip:${identity(ip)}`, 30, 3600);
     await this.limit(`otp:phone:${identity(phone)}`, 5, 3600);
     const locked = await this.cache.redis.set(
@@ -81,7 +84,11 @@ export class AuthService {
     const code = String(randomInt(100000, 1000000));
     const result = await this.cache.redis
       .multi()
-      .hset(`otp:challenge:${identity(phone)}`, { hash: otpHash(phone, code), role, attempts: '0' })
+      .hset(`otp:challenge:${identity(phone)}`, {
+        hash: otpHash(phone, code),
+        role: marker,
+        attempts: '0',
+      })
       .expire(`otp:challenge:${identity(phone)}`, 180)
       .exec();
     if (!result || result.some(([error]) => error)) throw new Error('OTP storage failed');
@@ -89,14 +96,20 @@ export class AuthService {
     // Configuration validation prevents this application starting in production.
     return { expiresIn: 180, devCode: code };
   }
-  async verifyOtp(phone: string, code: string, ip: string) {
+  /** Consumes a challenge once and returns its stored marker ('' when invalid). */
+  async consumeOtp(phone: string, code: string, ip: string) {
     await this.limit(`otp:verify:ip:${identity(ip)}`, 60, 60);
-    const role = await this.cache.redis.eval(
-      CONSUME_OTP,
-      1,
-      `otp:challenge:${identity(phone)}`,
-      otpHash(phone, code),
+    return String(
+      await this.cache.redis.eval(
+        CONSUME_OTP,
+        1,
+        `otp:challenge:${identity(phone)}`,
+        otpHash(phone, code),
+      ),
     );
+  }
+  async verifyOtp(phone: string, code: string, ip: string) {
+    const role = await this.consumeOtp(phone, code, ip);
     if (role !== 'customer' && role !== 'driver')
       throw new UnauthorizedException('Invalid or expired OTP');
     const refreshToken = randomBytes(48).toString('base64url');
@@ -128,7 +141,7 @@ export class AuthService {
       const session = (
         await client.query<{ id: string; user_id: string }>(
           `UPDATE auth_sessions SET refresh_hash = $1
-         WHERE refresh_hash = $2 AND revoked_at IS NULL AND expires_at > now()
+         WHERE refresh_hash = $2 AND transport = 'legacy' AND revoked_at IS NULL AND expires_at > now()
          RETURNING id, user_id`,
           [opaqueHash(next), opaqueHash(token)],
         )
@@ -149,6 +162,12 @@ export class AuthService {
       user: publicUser(result.user),
     };
   }
+}
+
+/** Legacy handlers never read the web refresh cookie; a request carrying it is mixed credentials. */
+function rejectWebCookie(request: Request) {
+  if (request.headers.cookie?.includes(`${REFRESH_COOKIE}=`))
+    throw new BadRequestException('Mixed credentials are not allowed');
 }
 
 @Controller('auth')
@@ -174,7 +193,8 @@ export class AuthController {
   }
   @Post('refresh')
   @HttpCode(200)
-  refresh(@Body() body: unknown) {
+  refresh(@Body() body: unknown, @Req() request: Request) {
+    rejectWebCookie(request);
     return this.auth.refresh(
       parse(z.object({ refreshToken: z.string().min(32).max(200) }).strict(), body).refreshToken,
     );
@@ -183,6 +203,7 @@ export class AuthController {
   @HttpCode(204)
   @UseGuards(AccessGuard)
   async logout(@Req() request: AuthRequest) {
+    rejectWebCookie(request);
     await this.database.pool.query('UPDATE auth_sessions SET revoked_at = now() WHERE id = $1', [
       request.sessionId,
     ]);

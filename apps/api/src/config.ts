@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 import { validRequiredKinds } from './document-policy';
+import { parseAllowedOrigins } from './web-auth-policy';
 
 export const environmentSchema = z
   .object({
@@ -12,6 +13,8 @@ export const environmentSchema = z
     OTP_SECRET: z.string().min(32),
     OTP_PROVIDER: z.literal('development'),
     CORS_ORIGINS: z.string().min(1),
+    WEB_AUTH_ENABLED: z.enum(['true', 'false']).default('false'),
+    CSRF_SECRET: z.string().min(32).optional(),
     NOMINATIM_BASE_URL: z.string().url().optional(),
     NOMINATIM_PUBLIC_OPT_IN: z.enum(['true', 'false']).default('false'),
     NOMINATIM_USER_AGENT: z
@@ -75,6 +78,29 @@ export const environmentSchema = z
     }
     if (env.JWT_SECRET === env.OTP_SECRET)
       context.addIssue({ code: 'custom', message: 'Use different signing secrets' });
+    try {
+      parseAllowedOrigins(env.CORS_ORIGINS);
+    } catch (error) {
+      context.addIssue({
+        code: 'custom',
+        path: ['CORS_ORIGINS'],
+        message: (error as Error).message,
+      });
+    }
+    if (env.WEB_AUTH_ENABLED === 'true') {
+      if (!env.CSRF_SECRET)
+        context.addIssue({
+          code: 'custom',
+          path: ['CSRF_SECRET'],
+          message: 'Web auth requires a dedicated CSRF secret',
+        });
+      else if ([env.JWT_SECRET, env.OTP_SECRET].includes(env.CSRF_SECRET))
+        context.addIssue({
+          code: 'custom',
+          path: ['CSRF_SECRET'],
+          message: 'CSRF secret must differ from JWT/OTP secrets',
+        });
+    }
   });
 export type Config = z.infer<typeof environmentSchema>;
 export function loadConfig(): Config {

@@ -57,7 +57,8 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-002: đo Active Tracking + Connection Recovery, stale thresholds, browser limits và quy trình khi Driver mất GPS.
 - WEB-003: **ADR đề xuất đang chờ review** — 3 React/Vite frontend + shared packages,
   route/deploy boundaries và web auth cookie-CSRF; xem [ADR-002](adr-web-architecture-auth.md).
-  Không mở lại lựa chọn 1-vs-3 nếu PO chưa đổi quyết định.
+  Không mở lại lựa chọn 1-vs-3 nếu PO chưa đổi quyết định. Backend `/auth/web/*` theo ADR đã có
+  code + integration test, mặc định tắt; xem [web auth server](web-auth-server.md).
 - WEB-004: **Prototype sẵn sàng review** — UX flows, 3 responsive wireframe variants và
   web design-system proposal; xem [WEB-004 UX flows](web-004-ux-flows.md). Chưa chọn
   winning pattern hoặc đưa prototype vào production bundle.

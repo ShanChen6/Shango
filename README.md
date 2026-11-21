@@ -57,6 +57,13 @@ npm run admin:grant -w @shango/api -- +84901234567
 
 Đăng nhập lại sau khi cấp quyền. Lệnh chỉ nâng một tài khoản customer active đã tồn tại và tạo audit. Không có tài khoản Admin mặc định. Không dùng bản OTP development ở môi trường truy cập công khai.
 
+### Web Customer/Driver/Admin với cookie auth
+
+Đặt `WEB_AUTH_ENABLED=true`, `CSRF_SECRET` (≥ 32 ký tự, khác JWT/OTP) và `CORS_ORIGINS` exact
+origin trong `apps/api/.env`, chạy `npm run db:migrate` rồi `npm run dev:customer-web`,
+`npm run dev:driver-web` hoặc Admin với `VITE_WEB_AUTH_ENABLED=true`. Xem
+[web auth server](docs/web-auth-server.md).
+
 ### Kiểm thử
 
 ```sh

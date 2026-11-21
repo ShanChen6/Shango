@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, Module, ServiceUnavailableException } from '@nestjs/common';
 import { AuthController, AuthService } from './auth';
+import { WebAuthController, WebAuthService } from './web-auth';
 import { Cache, Database } from './database';
 import { AccessGuard } from './security';
 import { AdminDriversController, DriversController } from './drivers';
@@ -30,7 +31,7 @@ class HealthController {
       await Promise.all([
         this.database.pool
           .query(
-            "SELECT postgis_version(), (SELECT version FROM schema_migrations WHERE version='003_driver_documents.sql') AS migration",
+            "SELECT postgis_version(), (SELECT version FROM schema_migrations WHERE version='004_web_auth_sessions.sql') AS migration",
           )
           .then((result) => {
             if (!result.rows[0]?.migration) throw new Error('Migration missing');
@@ -47,6 +48,7 @@ class HealthController {
   controllers: [
     HealthController,
     AuthController,
+    WebAuthController,
     DriversController,
     AdminDriversController,
     MapsController,
@@ -60,6 +62,7 @@ class HealthController {
     Database,
     Cache,
     AuthService,
+    WebAuthService,
     AccessGuard,
     MapsService,
     DocumentsService,

@@ -12,8 +12,8 @@
   `VITE_WEB_AUTH_ENABLED=true`; false quay lại legacy transport. Timeline migration thuộc WEB-008.
 - `packages/ui`: semantic tokens và accessible primitives không chứa nghiệp vụ.
 - `packages/api-client`: web auth adapter với credential cookie, CSRF, access token memory,
-  role gate và refresh single-flight. Endpoint server `/auth/web/*` thuộc lát backend kế tiếp;
-  legacy bearer/Expo transport không đổi.
+  role gate và refresh single-flight. Endpoint server `/auth/web/*` đã có, mặc định tắt
+  ([web auth server](web-auth-server.md)); legacy bearer/Expo transport không đổi.
 - Playwright baseline kiểm tra login boundary ở mobile/desktop cho cả ba web app.
 
 ## Guardrails

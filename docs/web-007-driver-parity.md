@@ -48,7 +48,8 @@
 - [x] Permission denied/unsupported/stale/unavailable UX cho GPS foreground.
 - [x] Responsive 320/768/1440px cho `/`, `/documents`, `/profile`; control ≥ 44px, label cho input.
 - [x] Unit (`driver-policy.test.ts`) + Playwright (`tests/web-e2e/driver.spec.ts`) với API mock.
-- [ ] Contract E2E với `/auth/web/*` server thật — phụ thuộc backend slice cookie auth.
+- [ ] Contract E2E tự động với `/auth/web/*` server thật trong CI. Backend đã có
+  ([web auth server](web-auth-server.md)) và đã smoke thủ công local; còn thiếu job CI có DB.
 - [ ] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao, map — phụ thuộc WEB-009.
 - [ ] Tracking production + reconnect/snapshot — phụ thuộc evidence thiết bị thật WEB-002 và PO.
 - [ ] QA Safari iOS/Chrome Android thật cho file picker và camera capture.
