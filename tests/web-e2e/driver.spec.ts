@@ -322,3 +322,53 @@ test('Driver documents screen fits supported viewport widths', async ({ page }) 
     }
   }
 });
+
+test.describe('WEB-002 gps lab', () => {
+  test.use({
+    permissions: ['geolocation'],
+    geolocation: { longitude: 105.852, latitude: 21.028, accuracy: 14 },
+  });
+  test('records timing and accuracy only and exports a coordinate-free evidence row', async ({
+    page,
+  }) => {
+    await mockDriverSession(page);
+    await mockDriverData(page, { profile: makeProfile(), items: [] });
+    const apiCalls: string[] = [];
+    page.on('request', (request) => {
+      if (
+        request.method() !== 'GET' &&
+        request.url().includes('/api/v1/') &&
+        !request.url().includes('/auth/web/')
+      )
+        apiCalls.push(request.url());
+    });
+    await page.goto(`${DRIVER_URL}/gps-lab`);
+    await expect(page.getByRole('heading', { name: 'Đo GPS trình duyệt', level: 1 })).toBeVisible();
+    await page.getByLabel(/Tên thiết bị/).fill('Pixel 8 | lab');
+    await page.getByLabel('Kịch bản').selectOption('foreground-2m');
+    await page.getByRole('button', { name: 'Bắt đầu đo' }).click();
+    await expect(page.getByText(/[1-9]\d* fix/).first()).toBeVisible();
+    // Emulated GPS only reports on movement, so move the device twice (real phones also poll).
+    await page.context().setGeolocation({ longitude: 105.853, latitude: 21.029, accuracy: 14 });
+    await expect(page.getByText(/· 2 fix ·/)).toBeVisible();
+    await page.waitForTimeout(1100);
+    await page.context().setGeolocation({ longitude: 105.854, latitude: 21.03, accuracy: 14 });
+    await expect(page.getByText(/· 3 fix ·/)).toBeVisible();
+    await page.getByRole('button', { name: 'Dừng đo' }).click();
+    await expect(page.getByText(/Khoảng cách fix median\/max: \d/)).toBeVisible();
+    const row = await page.getByLabel('Dòng cho docs/web-002-browser-evidence.md').inputValue();
+    expect(row.split(' | ')).toHaveLength(11);
+    expect(row).toContain('Pixel 8 / lab');
+    expect(row).toContain('Foreground 2 phút');
+    expect(row).toMatch(/\| 14\/14 m \|/);
+    expect(row).not.toContain('105.85');
+    expect(row).not.toMatch(/21\.0[23]/);
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Tải JSON (không có tọa độ)' }).click();
+    const file = await (await download).path();
+    const json = (await import('node:fs')).readFileSync(file!, 'utf8');
+    expect(json).toContain('shango-gps-lab');
+    expect(json).not.toMatch(/latitude|longitude|105\.85|21\.0[23]/);
+    expect(apiCalls).toEqual([]);
+  });
+});

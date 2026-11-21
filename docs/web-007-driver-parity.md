@@ -54,7 +54,7 @@
 - [x] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao: WEB-009 lát 1
   ([WEB-009](web-009-orders-dispatch.md)). Dẫn đường bằng link "Mở chỉ đường (Google Maps)", chế độ
   `two-wheeler` cho xe máy; tọa độ điểm đến chỉ được gửi cho Google khi tài xế bấm link.
-- [ ] Tracking production + reconnect/snapshot — phụ thuộc evidence thiết bị thật WEB-002 và PO.
+- [ ] Tracking production + reconnect/snapshot (đo bằng `/gps-lab`, xem [WEB-002](web-002-browser-evidence.md)) — phụ thuộc evidence thiết bị thật WEB-002 và PO.
 - [ ] QA Safari iOS/Chrome Android thật cho file picker và camera capture.
 
 ## Thay đổi dùng chung

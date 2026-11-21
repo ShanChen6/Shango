@@ -175,3 +175,19 @@ input[type='file']:focus-visible + .file-button,
   background: white;
   border: 2px solid var(--sg-brand);
 }
+.lab-stats {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.25rem;
+}
+.lab-row {
+  width: 100%;
+  min-width: 0;
+  font:
+    0.8rem/1.4 ui-monospace,
+    monospace;
+  padding: 0.5rem;
+  border: 1px solid #9cada5;
+  border-radius: var(--sg-radius-2);
+}

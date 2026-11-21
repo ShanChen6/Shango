@@ -87,6 +87,9 @@ function LocationCheck() {
           thể đã ngừng cập nhật GPS trong thời gian đó.
         </InlineAlert>
       )}
+      <p>
+        <NavLink to="/gps-lab">Công cụ đo GPS cho tester (WEB-002)</NavLink>
+      </p>
       {!sharing &&
         (location.active ? (
           <Button type="button" className="secondary" onClick={location.stop}>
