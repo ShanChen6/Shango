@@ -16,6 +16,7 @@ import { Cache, Database } from './database';
 import { AccessGuard } from './security';
 import { AdminDriversController, DriversController } from './drivers';
 import { MapsController, MapsService } from './maps';
+import { AdminServiceAreasController, ServiceAreaService } from './service-areas';
 import { ProfilesController } from './profiles';
 import { AuditController } from './audit';
 import {
@@ -42,7 +43,7 @@ class HealthController {
       await Promise.all([
         this.database.pool
           .query(
-            "SELECT postgis_version(), (SELECT version FROM schema_migrations WHERE version='005_orders_dispatch.sql') AS migration",
+            "SELECT postgis_version(), (SELECT version FROM schema_migrations WHERE version='006_service_areas.sql') AS migration",
           )
           .then((result) => {
             if (!result.rows[0]?.migration) throw new Error('Migration missing');
@@ -67,6 +68,7 @@ class HealthController {
     DriversController,
     AdminDriversController,
     MapsController,
+    AdminServiceAreasController,
     ProfilesController,
     AuditController,
     AdminDocumentsController,
@@ -86,6 +88,7 @@ class HealthController {
     RealtimeGateway,
     AccessGuard,
     MapsService,
+    ServiceAreaService,
     DocumentsService,
     PrivateDocumentStore,
     DocumentRateGuard,

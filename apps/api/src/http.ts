@@ -18,7 +18,10 @@ export function corsOptions(config: Pick<Config, 'CORS_ORIGINS'>) {
 
 export function configureHttp(app: INestApplication, config: Config) {
   // Only trust X-Forwarded-For from the configured number of proxy hops (Caddy = 1).
-  app.getHttpAdapter().getInstance().set('trust proxy', config.TRUST_PROXY_HOPS || false);
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set('trust proxy', config.TRUST_PROXY_HOPS || false);
   app.setGlobalPrefix('api/v1');
   app.use(helmet());
   app.use(app.get(Metrics).middleware());

@@ -2,7 +2,7 @@ import { createApi, createWebApi } from '@shango/api-client';
 import type {
   AuditFilters, AuditPage, Coordinate, DocumentKind, DocumentUpload, DriverDocuments,
   DriverProfile, DriverReviewItem, MapConfig, MapPlace, MapRoute, MapSearch, Page, PublicRole,
-  Order, OrderStatus, Session, User, UserProfile,
+  Order, OrderEvent, OrderStatus, ServiceArea, ServiceAreaUpdate, ServiceAreaVersion, Session, User, UserProfile,
 } from '@shango/contracts';
 
 export function createAdminWebApi(baseUrl: string, onSessionInvalid: () => void) {
@@ -48,8 +48,13 @@ export function createAdminWebApi(baseUrl: string, onSessionInvalid: () => void)
     reviewDriver: (id: string, status: 'approved' | 'rejected', expectedUpdatedAt: string, reason?: string) =>
       web.request<DriverProfile>(`/admin/drivers/${id}/review`, { method: 'PATCH', body: json({ status, expectedUpdatedAt, reason }), retryOnAuth: true }),
     adminOrders: (status: OrderStatus | '' = '') => web.request<{ items: Order[] }>(`/admin/orders${status ? `?status=${status}` : ''}`),
+    orderEvents: (id: string) => web.request<{ items: OrderEvent[] }>(`/orders/${id}/events`),
     cancelOrder: (id: string, expectedVersion: number, reason: string) =>
       web.request<Order>(`/admin/orders/${id}/cancel`, { method: 'POST', body: json({ expectedVersion, reason }), retryOnAuth: true }),
+    serviceAreas: () => web.request<{ items: ServiceArea[] }>('/admin/service-areas'),
+    serviceAreaVersions: (id: string) => web.request<{ items: ServiceAreaVersion[] }>(`/admin/service-areas/${id}/versions`),
+    updateServiceArea: (id: string, body: ServiceAreaUpdate) =>
+      web.request<ServiceArea>(`/admin/service-areas/${id}`, { method: 'PUT', body: json(body), retryOnAuth: true }),
   };
   return Object.assign(adapter as ReturnType<typeof createApi>, {
     bootstrap: async () => asLegacySession(await web.bootstrap()),

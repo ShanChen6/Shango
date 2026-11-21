@@ -16,6 +16,7 @@ import { MapPlayground } from './components/map-playground';
 import { AuditLogViewer } from './components/audit-log-viewer';
 import { DriverDocumentReview } from './components/driver-document-review';
 import { OrdersBoard } from './components/orders-board';
+import { ServiceAreasPage } from './components/service-areas-page';
 import {
   canAccess,
   errorStatus,
@@ -632,6 +633,14 @@ export function AdminApp({
               element={
                 <Guard role={role} section="orders">
                   <OrdersBoard api={api} online={online} />
+                </Guard>
+              }
+            />
+            <Route
+              path="/service-areas"
+              element={
+                <Guard role={role} section="areas">
+                  <ServiceAreasPage api={api} role={role} online={online} />
                 </Guard>
               }
             />

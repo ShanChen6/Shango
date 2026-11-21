@@ -66,6 +66,32 @@ const profile = {
   updatedAt: '2026-11-21T00:00:00.000Z',
 };
 
+const AREA = {
+  id: '6cdf06f0-e000-4111-8111-0000000a0001',
+  code: 'hanoi-pilot',
+  name: 'Hà Nội (khung tạm, chờ PO duyệt)',
+  active: true,
+  version: 1,
+  geometry: {
+    type: 'MultiPolygon',
+    coordinates: [
+      [
+        [
+          [105.3, 20.55],
+          [106.05, 20.55],
+          [106.05, 21.4],
+          [105.3, 21.4],
+          [105.3, 20.55],
+        ],
+      ],
+    ],
+  },
+  areaKm2: 7400,
+  vertices: 5,
+  updatedAt: '2026-11-21T10:00:00Z',
+  updatedBy: null,
+};
+
 async function signedIn(page: Page, role: string) {
   await page.route('**/api/v1/auth/web/csrf', (route) =>
     route.fulfill({ json: { csrfToken: 'csrf' } }),
@@ -122,6 +148,26 @@ async function signedIn(page: Page, role: string) {
   await page.route('**/api/v1/admin/orders**', (route) =>
     route.fulfill({ json: { items: [order] } }),
   );
+  await page.route('**/api/v1/admin/service-areas', (route) =>
+    route.fulfill({ json: { items: [AREA] } }),
+  );
+  await page.route('**/api/v1/admin/service-areas/*/versions', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            version: 1,
+            name: AREA.name,
+            active: true,
+            vertices: 5,
+            areaKm2: 7400,
+            changedAt: AREA.updatedAt,
+            changedBy: null,
+          },
+        ],
+      },
+    }),
+  );
   await page.route('**/api/v1/admin/drivers?**', (route) =>
     route.fulfill({
       json: {
@@ -154,6 +200,7 @@ const screens = [
   { name: 'Admin login', url: 'http://127.0.0.1:4176/', role: null },
   { name: 'Admin driver review', url: `http://127.0.0.1:4176/drivers/${DRIVER_ID}`, role: 'admin' },
   { name: 'Admin orders', url: 'http://127.0.0.1:4176/orders', role: 'admin' },
+  { name: 'Admin service areas', url: 'http://127.0.0.1:4176/service-areas', role: 'admin' },
 ];
 
 for (const screen of screens) {

@@ -2,7 +2,7 @@
  * Admin route/role model (ADR-002 §1). The frontend only hides what a role cannot use;
  * every endpoint is still authorized by the API.
  */
-export type Section = 'drivers' | 'orders' | 'maps' | 'audit';
+export type Section = 'drivers' | 'orders' | 'areas' | 'maps' | 'audit';
 export const STAFF_ROLES = ['admin', 'dispatcher', 'accountant'] as const;
 
 export const sections: Record<
@@ -16,6 +16,12 @@ export const sections: Record<
     roles: ['admin', 'dispatcher'],
   },
   orders: { path: '/orders', label: 'Đơn hàng', title: 'Đơn hàng', roles: ['admin', 'dispatcher'] },
+  areas: {
+    path: '/service-areas',
+    label: 'Vùng phục vụ',
+    title: 'Vùng phục vụ',
+    roles: ['admin', 'dispatcher'],
+  },
   maps: {
     path: '/maps',
     label: 'Bản đồ Hà Nội',
@@ -24,7 +30,7 @@ export const sections: Record<
   },
   audit: { path: '/audit', label: 'Nhật ký thao tác', title: 'Nhật ký thao tác', roles: ['admin'] },
 };
-export const sectionOrder: Section[] = ['drivers', 'orders', 'maps', 'audit'];
+export const sectionOrder: Section[] = ['drivers', 'orders', 'areas', 'maps', 'audit'];
 
 export function sectionsFor(role: string): Section[] {
   return sectionOrder.filter((section) => sections[section].roles.includes(role));

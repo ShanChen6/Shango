@@ -3,8 +3,8 @@ import { canAccess, errorStatus, homePath, sectionForPath, sectionsFor } from '.
 
 describe('admin navigation by role', () => {
   it('shows audit only to admins and mirrors server roles', () => {
-    expect(sectionsFor('admin')).toEqual(['drivers', 'orders', 'maps', 'audit']);
-    expect(sectionsFor('dispatcher')).toEqual(['drivers', 'orders', 'maps']);
+    expect(sectionsFor('admin')).toEqual(['drivers', 'orders', 'areas', 'maps', 'audit']);
+    expect(sectionsFor('dispatcher')).toEqual(['drivers', 'orders', 'areas', 'maps']);
     expect(canAccess('dispatcher', 'audit')).toBe(false);
   });
   it('gives accountants and public roles no Admin section yet', () => {

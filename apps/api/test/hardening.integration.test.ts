@@ -213,13 +213,11 @@ describe('WEB-010 hardening', () => {
     });
     const received = new Promise((resolve) => socket.once('order.updated', resolve));
     // Emitted on the primary instance; the socket lives on the secondary.
-    primary
-      .get(RealtimeHub)
-      .emit(`user:${session.user.id}`, 'order.updated', {
-        orderId: 'x',
-        version: 1,
-        status: 'SEARCHING',
-      });
+    primary.get(RealtimeHub).emit(`user:${session.user.id}`, 'order.updated', {
+      orderId: 'x',
+      version: 1,
+      status: 'SEARCHING',
+    });
     await expect(received).resolves.toMatchObject({ orderId: 'x', version: 1 });
   });
 });

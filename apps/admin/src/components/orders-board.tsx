@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { createApi } from '@shango/api-client';
-import type { Order, OrderStatus } from '@shango/contracts';
+import type { Order, OrderEvent, OrderStatus } from '@shango/contracts';
 import {
   Button,
   Card,
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/shango-theme';
 import { exceptionLabel, orderExceptions, summarize } from '@/lib/dispatch';
 
-type Api = Pick<ReturnType<typeof createApi>, 'adminOrders' | 'cancelOrder'>;
+type Api = Pick<ReturnType<typeof createApi>, 'adminOrders' | 'cancelOrder' | 'orderEvents'>;
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   SEARCHING: 'Đang tìm tài xế',
@@ -32,6 +32,13 @@ const time = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
   timeStyle: 'short',
 });
+
+export const actorLabels: Record<OrderEvent['actor'], string> = {
+  customer: 'Khách hàng',
+  driver: 'Tài xế',
+  staff: 'Nhân viên',
+  system: 'Hệ thống',
+};
 
 function locationAge(order: Order, now: number) {
   if (!order.driverLocation) return null;
@@ -56,6 +63,25 @@ export function OrdersBoard({
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [onlyExceptions, setOnlyExceptions] = useState(false);
+  const [historyId, setHistoryId] = useState<string | null>(null);
+  const [history, setHistory] = useState<OrderEvent[] | null>(null);
+  const [historyError, setHistoryError] = useState('');
+
+  const toggleHistory = async (order: Order) => {
+    if (historyId === order.id) {
+      setHistoryId(null);
+      return;
+    }
+    setHistoryId(order.id);
+    setHistory(null);
+    setHistoryError('');
+    try {
+      const page = await api.orderEvents(order.id);
+      setHistory(page.items);
+    } catch {
+      setHistoryError('Không tải được lịch sử đơn.');
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -244,7 +270,16 @@ export function OrdersBoard({
                         </small>
                       )}
                     </div>
-                    <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="primary-outlined"
+                        aria-expanded={historyId === order.id}
+                        aria-controls={`history-${order.id}`}
+                        onClick={() => void toggleHistory(order)}
+                      >
+                        Lịch sử
+                      </Button>
                       {staffCancellable(order.status) && (
                         <Button
                           type="button"
@@ -259,6 +294,33 @@ export function OrdersBoard({
                         </Button>
                       )}
                     </div>
+                    {historyId === order.id && (
+                      <div id={`history-${order.id}`} className="text-sm sm:col-span-full">
+                        {historyError ? (
+                          <p role="alert" className="text-destructive">
+                            {historyError}
+                          </p>
+                        ) : !history ? (
+                          <p className="text-muted-foreground">Đang tải lịch sử…</p>
+                        ) : (
+                          <ol
+                            aria-label={`Lịch sử đơn ${order.id.slice(0, 8)}`}
+                            className="grid gap-1"
+                          >
+                            {history.map((event) => (
+                              <li key={event.version}>
+                                <time dateTime={event.at}>{time.format(new Date(event.at))}</time>
+                                {' · '}
+                                <strong>{orderStatusLabels[event.status]}</strong>
+                                {' · '}
+                                {actorLabels[event.actor]}
+                                {event.reason && <> · “{event.reason}”</>}
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}

@@ -18,6 +18,10 @@ import type {
   DocumentKind,
   DocumentUpload,
   Order,
+  OrderEvent,
+  ServiceArea,
+  ServiceAreaUpdate,
+  ServiceAreaVersion,
   OrderStatus,
 } from '@shango/contracts';
 
@@ -182,7 +186,13 @@ export function createApi(baseUrl: string, store: SessionStore) {
       }),
     adminOrders: (status: OrderStatus | '' = '') =>
       request<{ items: Order[] }>(`/admin/orders${status ? `?status=${status}` : ''}`),
+    orderEvents: (id: string) => request<{ items: OrderEvent[] }>(`/orders/${id}/events`),
     cancelOrder: (id: string, expectedVersion: number, reason: string) =>
       request<Order>(`/admin/orders/${id}/cancel`, 'POST', { expectedVersion, reason }),
+    serviceAreas: () => request<{ items: ServiceArea[] }>('/admin/service-areas'),
+    serviceAreaVersions: (id: string) =>
+      request<{ items: ServiceAreaVersion[] }>(`/admin/service-areas/${id}/versions`),
+    updateServiceArea: (id: string, body: ServiceAreaUpdate) =>
+      request<ServiceArea>(`/admin/service-areas/${id}`, 'PUT', body),
   };
 }

@@ -16,7 +16,6 @@ import {
   Query,
   Req,
   ServiceUnavailableException,
-  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
@@ -26,7 +25,8 @@ import { loadConfig } from './config';
 import { AccessGuard, type AuthRequest, Roles } from './security';
 import { parse } from './validation';
 import { AuthService } from './auth';
-import { insideHanoi, MapsService } from './maps';
+import { MapsService } from './maps';
+import { ServiceAreaService } from './service-areas';
 import {
   ACTIVE_DRIVER_STATUSES,
   customerMayCancel,
@@ -478,13 +478,13 @@ export class QuoteService {
     @Inject(MapsService) private readonly maps: MapsService,
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(OrdersService) private readonly orders: OrdersService,
+    @Inject(ServiceAreaService) private readonly areas: ServiceAreaService,
   ) {}
 
   async quote(customerId: string, body: unknown) {
     ordersEnabled();
     const input = parse(quoteRequestSchema, body);
-    if (!insideHanoi(input.pickup.position) || !insideHanoi(input.dropoff.position))
-      throw new UnprocessableEntityException('Điểm lấy/giao phải nằm trong vùng thử nghiệm Hà Nội');
+    await this.areas.assertServed(input.pickup.position, input.dropoff.position);
     const tariff = tariffFor(loadConfig(), input.vehicleType);
     if (!tariff)
       throw new ServiceUnavailableException('Bảng giá chưa được cấu hình cho loại xe này');
@@ -558,6 +558,8 @@ export class QuoteService {
       if (open.rows[0].n >= MAX_OPEN_ORDERS_PER_CUSTOMER)
         throw new ConflictException('Bạn đang có quá nhiều đơn chưa hoàn tất');
       const { pickup, dropoff } = quote.stops;
+      // The area may have shrunk since the quote was issued.
+      await this.areas.assertServed(pickup.position, dropoff.position, client);
       const created = (
         await client.query<{ id: string }>(
           `INSERT INTO orders (quote_id, customer_id, status, vehicle_type, pickup_position, dropoff_position,
@@ -818,6 +820,45 @@ export class OrdersController {
       )
     ).rows;
     return { items };
+  }
+
+  /** Status history with the same read authorization as the order itself. */
+  @Get(':id/events')
+  @Roles('customer', 'driver', 'admin', 'dispatcher')
+  async events(@Param('id') id: string, @Req() request: AuthRequest) {
+    const order = uuid.safeParse(id).success
+      ? await this.orders.readable(id, request.account)
+      : undefined;
+    if (!order) throw new NotFoundException();
+    const staff = ['admin', 'dispatcher'].includes(request.account.role);
+    const rows = (
+      await this.database.pool.query<{
+        version: number;
+        status: string;
+        reason: string | null;
+        at: string;
+        actor_id: string | null;
+        actor_role: string | null;
+      }>(
+        `SELECT e.version, e.status, e.reason, e.created_at AS at, e.actor_id, u.role AS actor_role
+         FROM order_events e LEFT JOIN users u ON u.id = e.actor_id
+         WHERE e.order_id = $1 ORDER BY e.version`,
+        [id],
+      )
+    ).rows;
+    const actor = (role: string | null) =>
+      role === null ? 'system' : ['admin', 'dispatcher'].includes(role) ? 'staff' : role;
+    return {
+      items: rows.map((row) => ({
+        version: row.version,
+        status: row.status,
+        at: row.at,
+        reason: row.reason,
+        actor: actor(row.actor_role),
+        // Staff may correlate with the audit log; customers and drivers never see account ids.
+        ...(staff ? { actorId: row.actor_id } : {}),
+      })),
+    };
   }
 
   @Get(':id')

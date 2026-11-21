@@ -16,16 +16,19 @@ cổng PO sign-off trước pilot. Không deploy production; API hiện từ ch�
 
 ```bash
 git checkout <sha>
-docker build -f deploy/api.Dockerfile -t shango/api:<sha> .
-docker build -f deploy/web.Dockerfile -t shango/web:<sha> .
-deploy/backup.sh
-IMAGE_TAG=<sha> docker compose -f deploy/compose.staging.yaml --env-file deploy/staging.env up -d
+deploy/deploy.sh <sha>                 # build image theo SHA, backup, up --wait, chạy smoke
+SKIP_BACKUP=1 deploy/deploy.sh <sha>   # chỉ cho lần deploy đầu tiên
 ```
 
-`migrate` chạy trước `api`. Nếu migrate lỗi thì `api` không khởi động; xem log
-`docker compose … logs migrate`.
+`deploy.sh` từ chối chạy khi working tree bẩn hoặc HEAD khác SHA. Script kiểm tra
+`docker compose config` trước khi đụng vào stack. Backup lỗi thì dừng, không deploy. `migrate` chạy
+trước `api`; nếu migrate lỗi thì `api` không khởi động (xem `docker compose … logs migrate`).
 
 ## C. Smoke sau deploy (≤ 15 phút)
+
+`deploy/smoke.sh` tự kiểm 29 mục: readiness, metrics bị chặn ở edge, deep link, HSTS/CSP/nosniff/
+no-cache, Permissions-Policy, refresh không cookie bị 401, Origin lạ bị 403, metrics nội bộ có token.
+Nếu thiếu mục nào, script trả exit 1. Các mục thủ công bên dưới vẫn phải làm.
 
 - [ ] `https://customer.<domain>/api/v1/health/ready` → 200 (từ mạng được phép); từ mạng khác → 403.
 - [ ] `/api/v1/health/metrics` qua edge → 404; scrape nội bộ có token → 200.
@@ -36,6 +39,8 @@ IMAGE_TAG=<sha> docker compose -f deploy/compose.staging.yaml --env-file deploy/
 - [ ] DevTools console không có lỗi CSP.
 
 ## D. Rollback
+
+Nhanh nhất: `ROLLBACK=1 deploy/deploy.sh <sha-trước>` (dùng image đã có, vẫn backup rồi chạy smoke).
 
 Điều kiện kích hoạt: smoke C thất bại; tỉ lệ 5xx hoặc lỗi đăng nhập tăng đột biến; sai quyền
 truy cập hoặc lộ dữ liệu; double assignment; outbox pending tăng liên tục.
