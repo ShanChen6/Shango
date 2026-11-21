@@ -1,5 +1,7 @@
 # Giấy tờ tài xế riêng tư — SG-010 / SG-011
 
+> **Lịch sử:** app Expo mô tả trong tài liệu này đã được gỡ ở [WEB-011](web-011-expo-deprecation.md); mã nguồn còn ở tag `expo-legacy-final`. Hành vi tương ứng trên web nằm ở [WEB-006](web-006-customer-parity.md)/[WEB-007](web-007-driver-parity.md).
+
 ## Chính sách thử nghiệm đã được chủ dự án chọn
 
 Tài xế phải nộp **CCCD mặt trước, CCCD mặt sau, GPLX và đăng ký xe**. Đây là cấu hình nghiệp vụ pilot, không phải kết luận pháp lý hoặc quy trình KYC đã được kiểm định.

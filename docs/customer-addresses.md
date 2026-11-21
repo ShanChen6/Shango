@@ -1,5 +1,7 @@
 # SG-014 — Chọn địa chỉ lấy/giao trên App Khách
 
+> **Lịch sử:** app Expo mô tả trong tài liệu này đã được gỡ ở [WEB-011](web-011-expo-deprecation.md); mã nguồn còn ở tag `expo-legacy-final`. Hành vi tương ứng trên web nằm ở [WEB-006](web-006-customer-parity.md)/[WEB-007](web-007-driver-parity.md).
+
 ## Phạm vi đã có code
 
 - Điểm lấy và điểm giao độc lập, chọn từ tìm kiếm Hà Nội, bấm/kéo pin MapLibre hoặc nhập tọa độ.

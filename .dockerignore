@@ -12,5 +12,3 @@ deploy/backups
 playwright-report
 test-results
 prototypes
-apps/customer/android
-apps/customer/ios
