@@ -13,6 +13,7 @@
 | Hạng mục  | Chi tiết                                                                                                                                                                                                   |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace | `apps/customer` (Expo 55, MapLibre native), `apps/driver` (Expo 55), `packages/mobile-ui`                                                                                                                  |
+| Test | `apps/api/test/customer-draft.test.ts` (kiểm thử logic draft của app Expo; thay bằng `apps/customer-web/src/delivery-draft.test.ts` + Playwright) |
 | Script    | `dev:customer`, `dev:driver` trong `package.json` gốc                                                                                                                                                      |
 | CI        | Hai bước `npx expo export --platform android` trong job `foundation-checks`                                                                                                                                |
 | Lockfile  | Dependency chỉ phục vụ Expo/React Native (`npm install` sau khi xóa workspace)                                                                                                                             |

@@ -1,6 +1,6 @@
 # ShanGo
 
-> **Định hướng sản phẩm từ 28/10/2026:** ShanGo chuyển sang **web-only responsive** cho Khách hàng, Tài xế và Admin. **Chưa triển khai chuyển đổi code**: Customer/Driver trong repository vẫn là Expo/React Native (legacy). Xem [quyết định chuyển nền tảng](docs/adr-web-only.md) và [roadmap web](docs/roadmap-web.md). Các hướng dẫn Expo bên dưới là trạng thái *as-built* trước migration, không phải hướng phát triển mới.
+> **Định hướng sản phẩm từ 28/10/2026:** ShanGo chuyển sang **web-only responsive** cho Khách hàng, Tài xế và Admin. Customer/Driver/Admin đều là React/Vite web; app Expo/React Native đã được gỡ ở WEB-011 (bản cuối lưu ở tag `expo-legacy-final`). Xem [quyết định chuyển nền tảng](docs/adr-web-only.md), [roadmap web](docs/roadmap-web.md) và [WEB-011](docs/web-011-expo-deprecation.md).
 
 Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị viên.
 
@@ -10,9 +10,9 @@ Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị vi
 
 - NestJS API: OTP development, rate limit, access/refresh, logout và RBAC.
 - PostgreSQL/PostGIS migrations; Redis; liveness/readiness và request ID.
-- Hai app Expo/React Native: đăng nhập, secure storage, hồ sơ phương tiện tài xế.
+- Web Customer/Driver (React + Vite): đăng nhập cookie, hồ sơ, giấy tờ, địa chỉ, đơn hàng.
 - React Admin: đăng nhập, lọc/phân trang hồ sơ, duyệt/từ chối có audit và chống review stale.
-- CI cho typecheck, test, DB migration, integration, build API/Admin và mobile JS bundles.
+- CI cho typecheck, test, DB migration, integration, build, Playwright E2E (mock và API thật) và Docker image.
 
 Đặt đơn/điều phối/Socket.IO (WEB-009) có lát thử nghiệm sau cờ `ORDERS_ENABLED`, giá thử nghiệm chưa duyệt; xem [WEB-009](docs/web-009-orders-dispatch.md). Chưa có ví, ledger hoặc SMS thật. Giấy tờ tài xế được upload vào filesystem riêng tư cho môi trường phát triển, cần hoàn thiện vận hành lưu trữ trước production. API chủ động từ chối khởi động ở production với OTP development.
 
@@ -23,17 +23,17 @@ Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị vi
 ```text
 apps/api          NestJS + pg + Redis
 apps/admin        React + Vite
-apps/customer     React Native / Expo
-apps/driver       React Native / Expo
+apps/customer-web React + Vite (Khách hàng)
+apps/driver-web   React + Vite (Tài xế)
 packages/contracts    Kiểu dữ liệu dùng chung
 packages/api-client   HTTP client + refresh single-flight
-packages/mobile-ui    UI dùng chung + SecureStore
+packages/ui           Token + component web dùng chung
 docs/             Kiến trúc, backlog, review, kiểm thử
 ```
 
 ## Chạy local
 
-Yêu cầu Node 24, npm 11 và Docker Desktop đang chạy. macOS + Xcode cần thiết để build iOS native; Windows có thể chuẩn bị JS bundle và chạy Android khi đã có Android SDK.
+Yêu cầu Node 24, npm 11 và Docker Desktop đang chạy.
 
 1. Checkout `develop`, chạy `npm ci` tại thư mục gốc.
 2. Copy `.env.example` thành `.env` tại gốc và đặt `POSTGRES_PASSWORD` riêng.
@@ -41,11 +41,11 @@ Yêu cầu Node 24, npm 11 và Docker Desktop đang chạy. macOS + Xcode cần 
 4. Chạy `docker compose up -d --wait` tại gốc.
 5. Chạy `npm run db:migrate`, sau đó `npm run dev:api`.
 6. Terminal khác: `npm run dev:admin` → http://localhost:5173.
-7. Copy `.env.example` của hai app thành `.env`; chạy `npm run dev:customer` hoặc `npm run dev:driver`.
+7. Chạy `npm run dev:customer-web` (http://127.0.0.1:5174) hoặc `npm run dev:driver-web` (http://127.0.0.1:5175); cần bật cookie auth ở API, xem phần bên dưới.
 
 API: http://localhost:3000/api/v1. Liveness `/health/live`; readiness `/health/ready` kiểm tra PostGIS, migration và Redis.
 
-Android emulator dùng `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000/api/v1`; thiết bị thật dùng IP LAN của máy phát triển. Cấu hình firewall/phạm vi LAN có kiểm soát. URL HTTP chỉ phục vụ dev; build công khai phải dùng HTTPS và cấu hình network phù hợp.
+Thử trên điện thoại thật: mở web qua HTTPS (staging) vì Geolocation và cookie `Secure` cần secure context; URL HTTP chỉ dùng cho localhost.
 
 ### Đăng nhập Admin local
 
@@ -85,13 +85,7 @@ npm run test:integration
 
 Integration tự dọn các fixture do nó tạo; không chạy trên DB có dữ liệu thật. Xem `.github/workflows/ci.yml` để có cấu hình tái lập đầy đủ.
 
-JS bundling (không phải native build/store release):
-
-```sh
-npx expo export --platform android --output-dir dist-ci
-```
-
-Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS native trên thiết bị trước nghiệm thu.
+E2E: `npm run test:web:e2e` (API mock) và `npm run test:web:e2e:real` (API + DB thật, xem CI job `web-contract-e2e`).
 
 ## Tài liệu
 
@@ -104,7 +98,7 @@ Chạy từ từng thư mục app. Phải kiểm chứng thêm Android/iOS nativ
 - [Kế hoạch kiểm thử](docs/test-plan.md)
 - [Hồ sơ người dùng và nhật ký Admin](docs/profiles-and-audit.md)
 - [Upload và duyệt giấy tờ tài xế](docs/driver-documents.md)
-- [SG-014: Chọn địa chỉ trên App Khách](docs/customer-addresses.md) — MapLibre cần native/development build, không phải Expo Go
+- [SG-014: Chọn địa chỉ trên App Khách](docs/customer-addresses.md) — tài liệu lịch sử của app Expo đã gỡ ở WEB-011
 - [Button, Input, Card và theme Khách/Xế/Admin](docs/components.md) — xem mẫu tại `/components` trong Web Admin
 - [API contract](docs/openapi.yaml)
 

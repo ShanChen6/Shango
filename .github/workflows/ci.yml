@@ -61,10 +61,16 @@ jobs:
       - run: npm run db:migrate
       - run: npm run test:integration
       - run: npm run build
-      - run: npx expo export --platform android --output-dir dist-ci
-        working-directory: apps/customer
-      - run: npx expo export --platform android --output-dir dist-ci
-        working-directory: apps/driver
+  web011-gate:
+    name: web011-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Fails until WEB-002 evidence, parity checklists and release gates are closed.
+      - run: node scripts/web011-gate.mjs
   web-cross-browser:
     name: web-cross-browser
     runs-on: ubuntu-latest

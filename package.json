@@ -12,8 +12,6 @@
   "scripts": {
     "dev:api": "npm run dev -w @shango/api",
     "dev:admin": "npm run dev -w @shango/admin",
-    "dev:customer": "npm run start -w @shango/customer",
-    "dev:driver": "npm run start -w @shango/driver",
     "dev:customer-web": "npm run dev -w @shango/customer-web",
     "dev:driver-web": "npm run dev -w @shango/driver-web",
     "build": "npm run build -w @shango/api && npm run build -w @shango/admin && npm run build -w @shango/customer-web && npm run build -w @shango/driver-web",
