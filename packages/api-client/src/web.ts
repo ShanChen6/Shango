@@ -8,6 +8,7 @@ export class WebApiError extends Error {
     public readonly status: number,
     message: string,
     public readonly code = 'WEB_API_ERROR',
+    public readonly requestId?: string,
   ) {
     super(message);
   }
@@ -20,7 +21,10 @@ type WebApiOptions = {
   onSessionInvalid?: () => void;
 };
 
-export type WebRequestInit = RequestInit & { retryOnAuth?: boolean; responseType?: 'json' | 'blob' };
+export type WebRequestInit = RequestInit & {
+  retryOnAuth?: boolean;
+  responseType?: 'json' | 'blob';
+};
 
 export function createWebApi(baseUrl: string, options: WebApiOptions) {
   const root = baseUrl.replace(/\/$/, '');
@@ -37,19 +41,24 @@ export function createWebApi(baseUrl: string, options: WebApiOptions) {
     if (response.status === 204) return undefined as T;
     if (response.ok && responseType === 'blob') return (await response.blob()) as T;
     const body = (await response.json().catch(() => null)) as
-      | ({ message?: string; code?: string } & T)
-      | null;
+      ({ message?: string; code?: string } & T) | null;
     if (!response.ok) {
       throw new WebApiError(
         response.status,
         body?.message ?? 'Không thể xử lý yêu cầu',
         body?.code ?? 'WEB_API_ERROR',
+        response.headers.get('X-Request-Id') ?? undefined,
       );
     }
     return body as T;
   }
 
-  async function send<T>(path: string, init: RequestInit = {}, csrfToken?: string, responseType: 'json' | 'blob' = 'json') {
+  async function send<T>(
+    path: string,
+    init: RequestInit = {},
+    csrfToken?: string,
+    responseType: 'json' | 'blob' = 'json',
+  ) {
     const multipart = typeof FormData !== 'undefined' && init.body instanceof FormData;
     const response = await fetcher(`${root}${path}`, {
       ...init,
@@ -100,10 +109,15 @@ export function createWebApi(baseUrl: string, options: WebApiOptions) {
     const first = session as WebSession;
     const { retryOnAuth, responseType, ...requestInit } = init;
     try {
-      return await send<T>(path, {
-        ...requestInit,
-        headers: { Authorization: `Bearer ${first.accessToken}`, ...requestInit.headers },
-      }, undefined, responseType);
+      return await send<T>(
+        path,
+        {
+          ...requestInit,
+          headers: { Authorization: `Bearer ${first.accessToken}`, ...requestInit.headers },
+        },
+        undefined,
+        responseType,
+      );
     } catch (error) {
       if (!(error instanceof WebApiError) || error.status !== 401) throw error;
       const method = (requestInit.method ?? 'GET').toUpperCase();
@@ -111,16 +125,26 @@ export function createWebApi(baseUrl: string, options: WebApiOptions) {
       if (!safeToReplay) throw error;
       const latest = session;
       if (latest && latest.accessToken !== first.accessToken) {
-        return send<T>(path, {
-          ...requestInit,
-          headers: { Authorization: `Bearer ${latest.accessToken}`, ...requestInit.headers },
-        }, undefined, responseType);
+        return send<T>(
+          path,
+          {
+            ...requestInit,
+            headers: { Authorization: `Bearer ${latest.accessToken}`, ...requestInit.headers },
+          },
+          undefined,
+          responseType,
+        );
       }
       const updated = await refresh();
-      return send<T>(path, {
-        ...requestInit,
-        headers: { Authorization: `Bearer ${updated.accessToken}`, ...requestInit.headers },
-      }, undefined, responseType);
+      return send<T>(
+        path,
+        {
+          ...requestInit,
+          headers: { Authorization: `Bearer ${updated.accessToken}`, ...requestInit.headers },
+        },
+        undefined,
+        responseType,
+      );
     }
   }
 

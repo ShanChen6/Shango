@@ -63,7 +63,8 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
   winning pattern hoặc đưa prototype vào production bundle.
 - WEB-005: **Đang triển khai** — web foundation song song + CI/E2E; xem
   [WEB-005 foundation](web-005-foundation.md). Expo/mobile CI vẫn được giữ.
-- WEB-006: customer web parity.
+- WEB-006: **Đang triển khai** — Customer profile, address/map fallback và draft validation;
+  quote/order vẫn khóa đến khi WEB-009 có API authoritative.
 - WEB-007: driver web parity.
 - WEB-008: responsive Admin.
 - WEB-009: API business flows + reconnect/snapshot.
