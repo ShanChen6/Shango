@@ -166,7 +166,8 @@ export function DriverWorkProvider({ api, children }: { api: WebApi; children: R
     if (pendingOnline.current) {
       pendingOnline.current = false;
       void send(fix, true).then((result) => {
-        if (!result?.accepted) {
+        // 'throttled' means a fix was stored less than a second ago: presence is fresh.
+        if (!result?.accepted && !(result && 'reason' in result && result.reason === 'throttled')) {
           setWantsOnline(false);
           setAvailabilityError(
             result && 'reason' in result && result.reason === 'inaccurate'

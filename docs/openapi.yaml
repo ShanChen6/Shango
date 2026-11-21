@@ -762,7 +762,7 @@ paths:
                 recordedAt: { type: string, format: date-time }
       responses:
         '200':
-          description: 'Accepted, or rejected with reason stale | future | inaccurate | out-of-order'
+          description: 'Accepted, or rejected with reason stale | future | inaccurate | out-of-order | throttled (max 1 stored fix per second)'
           content:
             application/json:
               schema:

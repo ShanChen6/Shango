@@ -210,12 +210,18 @@ describe('orders, dispatch and realtime (WEB-009)', () => {
     return driver;
   }
 
-  function fix(
+  /** Sends a fix, clearing the per-driver throttle first (throttling has its own test). */
+  async function fix(
     token: string,
     position: { longitude: number; latitude: number },
     sequence: number,
     recordedAt = new Date(),
+    throttle = false,
   ) {
+    if (!throttle) {
+      const { sub } = JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString());
+      await cache.redis.del(`gps:throttle:${sub}`);
+    }
     return call(
       '/drivers/me/location',
       'POST',
@@ -605,6 +611,29 @@ describe('orders, dispatch and realtime (WEB-009)', () => {
       reason: 'forbidden',
     });
     await call(`/orders/${created.id}/cancel`, 'POST', { expectedVersion: 1 }, owner.token);
+  });
+
+  it('stores at most one fix per driver per second', async () => {
+    const driver = await signIn('driver');
+    await database.pool.query(
+      `INSERT INTO driver_profiles (user_id, vehicle_plate, vehicle_type, status) VALUES ($1, '29A-00009', 'motorcycle', 'approved')`,
+      [driver.id],
+    );
+    const now = Date.now();
+    expect((await fix(driver.token, HOAN_KIEM, 1, new Date(now - 500), true)).data).toEqual({
+      accepted: true,
+    });
+    expect((await fix(driver.token, NEAR, 2, new Date(now), true)).data).toEqual({
+      accepted: false,
+      reason: 'throttled',
+    });
+    const stored = await database.pool.query(
+      `SELECT ST_X(position::geometry) AS lng FROM driver_locations WHERE driver_id = $1`,
+      [driver.id],
+    );
+    expect(stored.rows[0].lng).toBeCloseTo(HOAN_KIEM.longitude, 6);
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect((await fix(driver.token, NEAR, 3, new Date(), true)).data).toEqual({ accepted: true });
   });
 
   it('keeps orders closed while the pilot flag is off', async () => {

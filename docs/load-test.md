@@ -33,12 +33,27 @@ API chạy với `ORDERS_ENABLED=true`, `DISPATCH_TICK_MS=500`, offer 20 giây.
 lô 50 đơn, lặp tới khi hết đơn chờ hoặc hết ngân sách 1 giây mỗi chu kỳ (đơn đã xét trong chu kỳ
 được bỏ qua để vòng lặp luôn dừng). Kết quả: p50 ghép đơn giảm khoảng 40%.
 
+## Đo lại pool PostgreSQL (`DB_POOL_MAX`, bổ sung cùng ngày)
+
+| Pool | Lần | REST p50/p95 | Tạo → ASSIGNED p50/p95 | Ack GPS p95 |
+| ---- | --- | ------------ | ---------------------- | ----------- |
+| 10   | 1   | 112/909 ms   | 1846/5598 ms           | 218 ms      |
+| 10   | 2   | 249/645 ms   | 2021/4847 ms           | 271 ms      |
+| 30   | 1   | 148/931 ms   | 1624/5393 ms           | 239 ms      |
+| 30   | 2   | 91/639 ms    | 1913/5369 ms           | 86 ms       |
+
+Tăng pool **không cải thiện rõ**: giả thuyết "pool 10 kết nối là nút thắt" ở bản trước **sai**. Nút thắt là
+vòng điều phối tuần tự (mỗi đơn một truy vấn `ST_DWithin` + một transaction, trong một tiến trình
+Node) và CPU của container. `DB_POOL_MAX` vẫn được giữ làm tham số vận hành (mặc định 10).
+
 ## Đánh giá và giới hạn
 
 - Với tải đều (vài đơn mỗi giây), ghép đơn khoảng 1 giây, chủ yếu do chu kỳ điều phối 500 ms; API
   và socket còn dư tải.
-- Khi dồn 200 đơn trong 1 giây, nút thắt là **pool PostgreSQL 10 kết nối** và việc mời tài xế tuần
-  tự mỗi đơn một transaction. Hướng xử lý nếu số liệu pilot cần: cấu hình kích thước pool, xử lý
-  song song có giới hạn, hoặc tách worker điều phối. Chưa làm vì tải này vượt xa pilot Hà Nội.
+- Khi dồn 200 đơn trong 1 giây, p95 ghép đơn khoảng 5 giây do điều phối tuần tự. Hướng xử lý nếu số
+  liệu pilot cần: mời tài xế song song có giới hạn (các unique index đã chặn gán trùng), hoặc tách
+  worker điều phối riêng. Chưa làm vì tải này vượt xa pilot Hà Nội.
+- Server giới hạn **1 fix GPS mỗi giây cho mỗi tài xế** (Redis); quá nhịp thì trả `throttled`, không
+  ghi DB.
 - Chưa đo: nhiều instance API với Redis adapter dưới tải, mạng di động thật, máy chủ staging.
   Cần chạy lại script trên staging (DB test riêng) trước pilot và ghi kết quả vào đây.
