@@ -1,7 +1,7 @@
 # WEB-004 — UX flows, responsive wireframes và web design system
 
 - Ngày: 2026-10-29
-- Trạng thái: **Prototype sẵn sàng review; chưa chọn winning variant**
+- Trạng thái: **Đã duyệt hướng triển khai ngày 2026-11-20**
 - Prototype: `prototypes/web-004-ux`
 - Phụ thuộc: WEB-001 inventory, WEB-003 architecture/auth ADR; Driver rollout vẫn phụ
   thuộc WEB-002 device evidence.
@@ -117,14 +117,18 @@ không tự suy ra “online” từ Socket.
 
 ## Review checklist và quyết định
 
+Quyết định PO ngày 2026-11-20: dùng **Task-first** cho Customer/Driver, **Timeline
+console** cho Admin, và chỉ dùng **Map-first split** ở màn hình có tác vụ bản đồ. WEB-005
+được phép tạo web foundation theo hướng này; quyết định không gỡ bỏ device gate WEB-002.
+
 - [ ] Customer: tạo đơn/address flow review tại mobile và desktop.
 - [ ] Driver: permission, stale, unavailable, reconnect/snapshot states được hiểu đúng.
 - [ ] Admin: review conflict/private document và dispatch exception dùng được mobile/desktop.
 - [ ] Keyboard order, focus, labels, contrast, zoom 200%, screen-reader smoke.
 - [ ] Loading/empty/error/offline không đổi layout hoặc che mất recovery action.
 - [ ] Map attribution/fallback hiện diện; prototype không bị hiểu là production provider.
-- [ ] Chọn winning pattern theo từng role/screen và ghi rationale.
-- [ ] Chốt tokens/primitives đủ cho WEB-005, tránh đưa domain component vào shared UI.
+- [x] Chọn winning pattern theo từng role/screen và ghi rationale.
+- [x] Chốt tokens/primitives đủ cho WEB-005, tránh đưa domain component vào shared UI.
 
 Chỉ sau checklist review mới chuyển winning patterns vào WEB-005. Prototype còn lại được
 giữ trên nhánh throwaway làm nguồn tham chiếu, không merge vào production bundle.

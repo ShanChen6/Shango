@@ -14,13 +14,17 @@
     "dev:admin": "npm run dev -w @shango/admin",
     "dev:customer": "npm run start -w @shango/customer",
     "dev:driver": "npm run start -w @shango/driver",
-    "build": "npm run build -w @shango/api && npm run build -w @shango/admin",
+    "dev:customer-web": "npm run dev -w @shango/customer-web",
+    "dev:driver-web": "npm run dev -w @shango/driver-web",
+    "build": "npm run build -w @shango/api && npm run build -w @shango/admin && npm run build -w @shango/customer-web && npm run build -w @shango/driver-web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test -w @shango/api && npm run test -w @shango/admin",
+    "test": "npm run test -w @shango/api && npm run test -w @shango/admin && npm run test -w @shango/api-client && npm run test -w @shango/ui",
+    "test:web:e2e": "playwright test",
     "test:integration": "npm run test:integration -w @shango/api",
     "db:migrate": "npm run db:migrate -w @shango/api"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "prettier": "^3.9.10"
   }
 }

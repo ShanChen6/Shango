@@ -1,5 +1,7 @@
 import { StrictMode, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
 import { createApi } from '@shango/api-client';
 import type { DriverReviewItem, Page, Session } from '@shango/contracts';
 import './style.css';
@@ -7,14 +9,22 @@ import { ThemeShowcase } from './components/theme-showcase';
 import { MapPlayground } from './components/map-playground';
 import { AuditLogViewer } from './components/audit-log-viewer';
 import { DriverDocumentReview } from './components/driver-document-review';
+import { createAdminWebApi } from './lib/admin-web-api';
 
 let currentSession: Session | null = null;
-const api = createApi(import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1', {
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
+const legacyApi = createApi(apiBaseUrl, {
   get: async () => currentSession,
   set: async (value) => {
     currentSession = value;
   },
 });
+const webAuthEnabled = import.meta.env.VITE_WEB_AUTH_ENABLED === 'true';
+const adminWebApi = createAdminWebApi(apiBaseUrl, () => { currentSession = null; queryClient.clear(); });
+const api = webAuthEnabled
+  ? adminWebApi
+  : legacyApi;
 const labels = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' };
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -31,6 +41,13 @@ function App() {
   const [selected, setSelected] = useState<DriverReviewItem | null>(null);
   const [reason, setReason] = useState('');
   const [documentsReady, setDocumentsReady] = useState(false);
+  useEffect(() => {
+    if (!webAuthEnabled) return;
+    let active = true;
+    const unsubscribe = adminWebApi.subscribeSessionInvalid(() => { if (active) { setSession(null); setData(null); setSelected(null); } });
+    adminWebApi.bootstrap().then(value => { if (active) setSession(value); }).catch(() => { if (active) setSession(null); });
+    return () => { active = false; unsubscribe(); };
+  }, []);
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -400,6 +417,10 @@ function App() {
 }
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {window.location.pathname === '/components' ? <ThemeShowcase /> : <App />}
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        {window.location.pathname === '/components' ? <ThemeShowcase /> : <App />}
+      </BrowserRouter>
+    </QueryClientProvider>
   </StrictMode>,
 );
