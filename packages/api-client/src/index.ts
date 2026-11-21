@@ -18,6 +18,7 @@ import type {
   DocumentKind,
   DocumentUpload,
   Order,
+  OrderEvent,
   OrderStatus,
 } from '@shango/contracts';
 
@@ -182,6 +183,7 @@ export function createApi(baseUrl: string, store: SessionStore) {
       }),
     adminOrders: (status: OrderStatus | '' = '') =>
       request<{ items: Order[] }>(`/admin/orders${status ? `?status=${status}` : ''}`),
+    orderEvents: (id: string) => request<{ items: OrderEvent[] }>(`/orders/${id}/events`),
     cancelOrder: (id: string, expectedVersion: number, reason: string) =>
       request<Order>(`/admin/orders/${id}/cancel`, 'POST', { expectedVersion, reason }),
   };

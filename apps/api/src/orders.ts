@@ -820,6 +820,45 @@ export class OrdersController {
     return { items };
   }
 
+  /** Status history with the same read authorization as the order itself. */
+  @Get(':id/events')
+  @Roles('customer', 'driver', 'admin', 'dispatcher')
+  async events(@Param('id') id: string, @Req() request: AuthRequest) {
+    const order = uuid.safeParse(id).success
+      ? await this.orders.readable(id, request.account)
+      : undefined;
+    if (!order) throw new NotFoundException();
+    const staff = ['admin', 'dispatcher'].includes(request.account.role);
+    const rows = (
+      await this.database.pool.query<{
+        version: number;
+        status: string;
+        reason: string | null;
+        at: string;
+        actor_id: string | null;
+        actor_role: string | null;
+      }>(
+        `SELECT e.version, e.status, e.reason, e.created_at AS at, e.actor_id, u.role AS actor_role
+         FROM order_events e LEFT JOIN users u ON u.id = e.actor_id
+         WHERE e.order_id = $1 ORDER BY e.version`,
+        [id],
+      )
+    ).rows;
+    const actor = (role: string | null) =>
+      role === null ? 'system' : ['admin', 'dispatcher'].includes(role) ? 'staff' : role;
+    return {
+      items: rows.map((row) => ({
+        version: row.version,
+        status: row.status,
+        at: row.at,
+        reason: row.reason,
+        actor: actor(row.actor_role),
+        // Staff may correlate with the audit log; customers and drivers never see account ids.
+        ...(staff ? { actorId: row.actor_id } : {}),
+      })),
+    };
+  }
+
   @Get(':id')
   @Roles('customer', 'driver', 'admin', 'dispatcher')
   async get(@Param('id') id: string, @Req() request: AuthRequest) {

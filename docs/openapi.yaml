@@ -674,7 +674,10 @@ paths:
         '403': { description: Not a customer }
         '422': { description: Stop outside the Hanoi pilot area }
         '429': { description: Rate limited }
-        '503': { description: 'Orders disabled, tariff missing for the vehicle type, or routing not configured' }
+        '503':
+          {
+            description: 'Orders disabled, tariff missing for the vehicle type, or routing not configured',
+          }
   /orders:
     get:
       tags: [Orders]
@@ -722,6 +725,25 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Order' }
+        '404': { description: Not found or not readable by this account }
+  /orders/{id}/events:
+    get:
+      tags: [Orders]
+      summary: Status timeline (owner customer, assigned driver or staff)
+      description: >-
+        Ordered by version. `actor` is customer, driver, staff (admin/dispatcher) or system
+        (dispatch expiry). `actorId` is only returned to staff.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Timeline
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/OrderEvent' } }
         '404': { description: Not found or not readable by this account }
   /orders/{id}/cancel:
     post:
@@ -826,7 +848,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Order' }
-        '409': { description: 'Offer expired/withdrawn, order no longer searching, or driver already busy' }
+        '409':
+          {
+            description: 'Offer expired/withdrawn, order no longer searching, or driver already busy',
+          }
   /drivers/me/offers/{id}/decline:
     post:
       tags: [Drivers]
@@ -873,7 +898,15 @@ paths:
       tags: [Admin]
       summary: 100 most recent orders, optionally filtered by status (admin, dispatcher)
       security: [{ bearerAuth: [] }]
-      parameters: [{ in: query, name: status, required: false, schema: { $ref: '#/components/schemas/OrderStatus' } }]
+      parameters:
+        [
+          {
+            in: query,
+            name: status,
+            required: false,
+            schema: { $ref: '#/components/schemas/OrderStatus' },
+          },
+        ]
       responses:
         '200': { description: '{ items: Order[] }' }
   /admin/orders/{id}/cancel:
@@ -911,6 +944,16 @@ components:
     OrderStatus:
       type: string
       enum: [SEARCHING, ASSIGNED, AT_PICKUP, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED, EXPIRED]
+    OrderEvent:
+      type: object
+      required: [version, status, at, reason, actor]
+      properties:
+        version: { type: integer }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        at: { type: string, format: date-time }
+        reason: { type: string, nullable: true }
+        actor: { type: string, enum: [customer, driver, staff, system] }
+        actorId: { type: string, format: uuid, nullable: true, description: Staff only }
     ExpectedVersion:
       type: object
       additionalProperties: false
@@ -968,7 +1011,12 @@ components:
         customerId: { type: string, format: uuid }
         driverId: { type: string, format: uuid, nullable: true }
         driver: { type: object, nullable: true }
-        driverLocation: { type: object, nullable: true, description: Last known position while the order is active }
+        driverLocation:
+          {
+            type: object,
+            nullable: true,
+            description: Last known position while the order is active,
+          }
     WebSession:
       type: object
       required: [accessToken, csrfToken, user]

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { MapConfig, Order } from '@shango/contracts';
+import type { MapConfig, Order, OrderEvent } from '@shango/contracts';
 import { WebApiError, type createWebApi } from '@shango/api-client';
 import { Badge, Button, Card, InlineAlert, PageHeader } from '@shango/ui';
 import { useLiveOrder } from './live-order';
@@ -85,6 +85,18 @@ export function OrderDetailPage({ api }: { api: WebApi }) {
     queryFn: () => api.request<MapConfig>('/maps/config'),
     staleTime: 10 * 60_000,
   });
+  // Refetched whenever the live order version changes.
+  const events = useQuery({
+    queryKey: ['order-events', id, order.data?.version],
+    queryFn: () => api.request<{ items: OrderEvent[] }>(`/orders/${id}/events`),
+    enabled: Boolean(order.data),
+  });
+  const eventTime = new Map(
+    (events.data?.items ?? []).map((event) => [
+      event.status,
+      new Date(event.at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    ]),
+  );
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -143,6 +155,9 @@ export function OrderDetailPage({ api }: { api: WebApi }) {
                     aria-current={index === stepIndex ? 'step' : undefined}
                   >
                     {statusLabels[step]}
+                    {eventTime.get(step) && (
+                      <time className="step-time"> · {eventTime.get(step)}</time>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -150,6 +165,7 @@ export function OrderDetailPage({ api }: { api: WebApi }) {
               <InlineAlert tone="warning">
                 {statusLabels[data.status]}
                 {data.cancelReason ? `: ${data.cancelReason}` : ''}
+                {eventTime.get(data.status) ? ` (${eventTime.get(data.status)})` : ''}
               </InlineAlert>
             )}
             {data.status === 'SEARCHING' && (

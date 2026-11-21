@@ -182,3 +182,7 @@
 .order-map {
   min-height: 16rem;
 }
+.step-time {
+  color: var(--sg-text-muted);
+  font-weight: 400;
+}

@@ -6,7 +6,8 @@ import { OrdersBoard, staffCancellable } from './orders-board';
 
 const adminOrders = vi.fn();
 const cancelOrder = vi.fn();
-const api = { adminOrders, cancelOrder };
+const orderEvents = vi.fn();
+const api = { adminOrders, cancelOrder, orderEvents };
 const stop = {
   position: { longitude: 105.852, latitude: 21.028 },
   address: 'Hồ Hoàn Kiếm',
@@ -105,5 +106,56 @@ describe('admin orders board', () => {
     await user.click(screen.getByLabelText('Chỉ hiện ngoại lệ'));
     expect(screen.queryByText(/Chi · 30B-888.88/)).not.toBeInTheDocument();
     expect(screen.getByText('Bình · 29A-123.45')).toBeInTheDocument();
+  });
+
+  it('shows the order timeline with actor and reason on demand', async () => {
+    const user = userEvent.setup();
+    orderEvents.mockResolvedValue({
+      items: [
+        {
+          version: 1,
+          status: 'SEARCHING',
+          at: '2026-11-21T10:00:00Z',
+          reason: null,
+          actor: 'customer',
+        },
+        {
+          version: 2,
+          status: 'ASSIGNED',
+          at: '2026-11-21T10:01:00Z',
+          reason: null,
+          actor: 'driver',
+        },
+        {
+          version: 3,
+          status: 'CANCELLED',
+          at: '2026-11-21T10:03:00Z',
+          reason: 'Khách gọi hủy',
+          actor: 'staff',
+          actorId: 'admin-1',
+        },
+      ],
+    });
+    render(<OrdersBoard api={api} refreshMs={0} />);
+    await screen.findByText('Bình · 29A-123.45');
+    const [button] = screen.getAllByRole('button', { name: 'Lịch sử' });
+    await user.click(button);
+    expect(orderEvents).toHaveBeenCalledWith('6cdf06f0-e000-4111-8111-000000000001');
+    const list = await screen.findByRole('list', { name: 'Lịch sử đơn 6cdf06f0' });
+    expect(list).toHaveTextContent('Đang tìm tài xế · Khách hàng');
+    expect(list).toHaveTextContent('Đã gán · Tài xế');
+    expect(list).toHaveTextContent('Đã hủy · Nhân viên · “Khách gọi hủy”');
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await user.click(button);
+    expect(screen.queryByRole('list', { name: 'Lịch sử đơn 6cdf06f0' })).not.toBeInTheDocument();
+  });
+
+  it('reports a timeline load failure', async () => {
+    const user = userEvent.setup();
+    orderEvents.mockRejectedValue(new Error('500'));
+    render(<OrdersBoard api={api} refreshMs={0} />);
+    await screen.findByText('Bình · 29A-123.45');
+    await user.click(screen.getAllByRole('button', { name: 'Lịch sử' })[0]);
+    expect(await screen.findByText('Không tải được lịch sử đơn.')).toBeInTheDocument();
   });
 });

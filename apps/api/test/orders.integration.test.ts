@@ -526,6 +526,29 @@ describe('orders, dispatch and realtime (WEB-009)', () => {
       'IN_TRANSIT',
       'DELIVERED',
     ]);
+    const timeline = await call(`/orders/${created.id}/events`, 'GET', undefined, customer.token);
+    expect(timeline.status).toBe(200);
+    expect(
+      timeline.data.items.map((item: { status: string; actor: string }) => [
+        item.status,
+        item.actor,
+      ]),
+    ).toEqual([
+      ['SEARCHING', 'customer'],
+      ['ASSIGNED', 'driver'],
+      ['AT_PICKUP', 'driver'],
+      ['PICKED_UP', 'driver'],
+      ['IN_TRANSIT', 'driver'],
+      ['DELIVERED', 'driver'],
+    ]);
+    expect(JSON.stringify(timeline.data)).not.toContain(far.id);
+    expect((await call(`/orders/${created.id}/events`, 'GET', undefined, near.token)).status).toBe(
+      404,
+    );
+    const stranger = await signIn('customer');
+    expect(
+      (await call(`/orders/${created.id}/events`, 'GET', undefined, stranger.token)).status,
+    ).toBe(404);
     await call('/drivers/me/availability', 'PATCH', { available: false }, near.token);
     await call('/drivers/me/availability', 'PATCH', { available: false }, far.token);
   });
@@ -560,6 +583,24 @@ describe('orders, dispatch and realtime (WEB-009)', () => {
       admin.token,
     );
     expect(cancelled.data).toMatchObject({ status: 'CANCELLED', cancelReason: 'Khách gọi hủy' });
+    const staffTimeline = await call(`/orders/${created.id}/events`, 'GET', undefined, admin.token);
+    expect(staffTimeline.data.items.at(-1)).toMatchObject({
+      status: 'CANCELLED',
+      actor: 'staff',
+      actorId: admin.id,
+      reason: 'Khách gọi hủy',
+    });
+    const customerTimeline = await call(
+      `/orders/${created.id}/events`,
+      'GET',
+      undefined,
+      customer.token,
+    );
+    expect(customerTimeline.data.items.at(-1)).toMatchObject({
+      status: 'CANCELLED',
+      actor: 'staff',
+    });
+    expect(customerTimeline.data.items.at(-1)).not.toHaveProperty('actorId');
     expect(
       (
         await call(

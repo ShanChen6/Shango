@@ -244,3 +244,12 @@ export interface OrderLocationEvent extends Coordinate {
   accuracy: number;
   recordedAt: string;
 }
+export interface OrderEvent {
+  version: number;
+  status: OrderStatus;
+  at: string;
+  reason: string | null;
+  actor: 'customer' | 'driver' | 'staff' | 'system';
+  /** Only returned to admin/dispatcher. */
+  actorId?: string | null;
+}
