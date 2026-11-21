@@ -88,7 +88,10 @@ trong layer nào.
 
 - Provision VPS, DNS, firewall và người vận hành; deploy staging thật (cần quyết định và quyền).
 - SMS OTP thật; object storage/mã hóa/retention giấy tờ; backup ra ngoài máy (offsite) và lịch backup.
-- Cross-browser (Firefox, WebKit/Safari iOS, Chrome Android): CI và container này mới có Chromium.
+- Cross-browser **trên thiết bị thật** (Safari iOS, Chrome Android). Bộ E2E mock đã chạy tự động trên
+  Firefox, WebKit desktop và WebKit mobile (job CI `web-cross-browser`). Lần chạy đầu tìm ra lỗi:
+  Firefox để lời hỏi quyền vị trí treo, không báo lại cho app. App nay đọc Permissions API và hiện
+  hướng dẫn sau 10 giây chờ.
 - Thu thập metrics/log tập trung và alert (chưa có Prometheus/Grafana); log JSON hiện chỉ có
   requestId/method/status/thời gian.
 - Load test dispatch/socket; pentest; DPIA/quy trình dữ liệu cá nhân.

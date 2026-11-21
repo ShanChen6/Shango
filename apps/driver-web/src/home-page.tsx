@@ -53,6 +53,12 @@ function LocationCheck() {
           Máy chủ chưa nhận vị trí gần nhất ({lastSend.result.reason}).
         </InlineAlert>
       )}
+      {location.waitingForMs !== null && location.waitingForMs >= 10_000 && (
+        <InlineAlert tone="warning">
+          Chưa nhận được vị trí. Nếu trình duyệt đang hỏi quyền, hãy chọn Cho phép; nếu đã bỏ qua
+          hoặc chặn, mở cài đặt trang web để bật Vị trí rồi thử lại.
+        </InlineAlert>
+      )}
       {freshness === 'denied' && (
         <InlineAlert tone="warning">
           Trình duyệt đang chặn quyền vị trí. Mở cài đặt trang web, cho phép Vị trí rồi bấm kiểm tra

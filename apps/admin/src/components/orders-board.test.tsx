@@ -96,4 +96,14 @@ describe('admin orders board', () => {
     await waitFor(() => expect(adminOrders).toHaveBeenLastCalledWith('SEARCHING'));
     expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được');
   });
+  it('summarizes dispatch exceptions and filters to them', async () => {
+    const user = userEvent.setup();
+    render(<OrdersBoard api={api} refreshMs={0} />);
+    await screen.findByText('Bình · 29A-123.45');
+    expect(screen.getByText('1 đơn mất GPS tài xế')).toBeInTheDocument();
+    expect(screen.getByText('⚠ Chưa có GPS tài xế')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Chỉ hiện ngoại lệ'));
+    expect(screen.queryByText(/Chi · 30B-888.88/)).not.toBeInTheDocument();
+    expect(screen.getByText('Bình · 29A-123.45')).toBeInTheDocument();
+  });
 });

@@ -10,6 +10,8 @@ export type ForegroundLocation = {
   lastError: string | null;
   /** Milliseconds the page last spent hidden while checking; tracking may have paused. */
   lastHiddenForMs: number | null;
+  /** Milliseconds since start without any fix (null when a fix arrived or not started). */
+  waitingForMs: number | null;
   start: () => void;
   stop: () => void;
 };
@@ -82,6 +84,21 @@ export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLoc
     setHiddenFor(null);
     setStartedAt(Date.now());
     watchId.current = navigator.geolocation.watchPosition(onPosition, onError, OPTIONS);
+    // Some browsers (e.g. Firefox) never call back when a prompt is dismissed or was blocked
+    // earlier; the Permissions API lets us say "blocked" instead of waiting forever.
+    navigator.permissions
+      ?.query({ name: 'geolocation' })
+      .then((status) => {
+        const apply = () => {
+          if (status.state === 'denied') {
+            setDenied(true);
+            clear();
+          }
+        };
+        apply();
+        status.onchange = apply;
+      })
+      .catch(() => undefined);
   }, [supported, onPosition, onError]);
 
   const active = startedAt !== null;
@@ -118,6 +135,7 @@ export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLoc
     now,
     lastError,
     lastHiddenForMs,
+    waitingForMs: active && lastFixAt === null && !permissionDenied ? now - startedAt! : null,
     start,
     stop,
   };

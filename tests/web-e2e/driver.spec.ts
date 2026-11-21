@@ -169,9 +169,7 @@ test('Driver rejects unsupported files before any upload', async ({ page }) => {
   expect(uploads).toBe(0);
 });
 
-test('Approved driver views private documents read-only and may go online', async ({
-  page,
-}) => {
+test('Approved driver views private documents read-only and may go online', async ({ page }) => {
   await mockDriverSession(page);
   await mockDriverData(page, {
     profile: makeProfile({ status: 'approved' }),
@@ -241,7 +239,13 @@ test.describe('foreground location check', () => {
   });
 });
 
-test('Driver location check explains a denied permission', async ({ page, context }) => {
+test('Driver location check explains a denied permission', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  // Firefox automation leaves an unanswered prompt instead of denying; covered by the stubs below.
+  test.skip(browserName === 'firefox', 'Firefox does not auto-deny geolocation under automation');
   await context.clearPermissions();
   await mockDriverSession(page);
   await mockDriverData(page, { profile: makeProfile(), items: [] });
@@ -249,6 +253,52 @@ test('Driver location check explains a denied permission', async ({ page, contex
   await page.getByRole('button', { name: 'Kiểm tra vị trí' }).click();
   await expect(page.getByText('Bị chặn quyền vị trí')).toBeVisible();
   await expect(page.getByText(/cho phép Vị trí/)).toBeVisible();
+});
+
+/** Replaces geolocation/permissions so every browser engine follows the same scenario. */
+async function stubGeolocation(
+  page: import('@playwright/test').Page,
+  permission: 'prompt' | 'denied',
+) {
+  await page.addInitScript((state) => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: () => 1,
+        clearWatch: () => undefined,
+        getCurrentPosition: () => undefined,
+      },
+    });
+    Object.defineProperty(navigator, 'permissions', {
+      configurable: true,
+      value: { query: async () => ({ state, onchange: null }) },
+    });
+  }, permission);
+}
+
+test('Driver sees "blocked" from the Permissions API even when the browser never answers', async ({
+  page,
+}) => {
+  await stubGeolocation(page, 'denied');
+  await mockDriverSession(page);
+  await mockDriverData(page, { profile: makeProfile(), items: [] });
+  await page.goto(DRIVER_URL);
+  await page.getByRole('button', { name: 'Kiểm tra vị trí' }).click();
+  await expect(page.getByText('Bị chặn quyền vị trí')).toBeVisible();
+  await expect(page.getByText(/cho phép Vị trí/)).toBeVisible();
+});
+
+test('Driver gets guidance when a location prompt stays unanswered', async ({ page }) => {
+  await page.clock.install();
+  await stubGeolocation(page, 'prompt');
+  await mockDriverSession(page);
+  await mockDriverData(page, { profile: makeProfile(), items: [] });
+  await page.goto(DRIVER_URL);
+  await page.getByRole('button', { name: 'Kiểm tra vị trí' }).click();
+  await expect(page.getByText('Đang chờ vị trí')).toBeVisible();
+  await expect(page.getByText(/Nếu trình duyệt đang hỏi quyền/)).toHaveCount(0);
+  await page.clock.fastForward(11_000);
+  await expect(page.getByText(/Nếu trình duyệt đang hỏi quyền/)).toBeVisible();
 });
 
 test('Driver documents screen fits supported viewport widths', async ({ page }) => {

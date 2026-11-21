@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/shango-theme';
+import { exceptionLabel, orderExceptions, summarize } from '@/lib/dispatch';
 
 type Api = Pick<ReturnType<typeof createApi>, 'adminOrders' | 'cancelOrder'>;
 
@@ -37,7 +38,15 @@ function locationAge(order: Order, now: number) {
   return Math.max(0, Math.round((now - Date.parse(order.driverLocation.lastSeenAt)) / 1000));
 }
 
-export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api; refreshMs?: number; online?: boolean }) {
+export function OrdersBoard({
+  api,
+  refreshMs = 5000,
+  online = true,
+}: {
+  api: Api;
+  refreshMs?: number;
+  online?: boolean;
+}) {
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [items, setItems] = useState<Order[] | null>(null);
   const [error, setError] = useState('');
@@ -46,6 +55,7 @@ export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [onlyExceptions, setOnlyExceptions] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -82,6 +92,9 @@ export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api
     }
   };
 
+  const visible =
+    items &&
+    (onlyExceptions ? items.filter((order) => orderExceptions(order, now).length > 0) : items);
   return (
     <div data-theme="admin" className="grid gap-5 text-foreground">
       <Card>
@@ -108,6 +121,25 @@ export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api
               ))}
             </select>
           </label>
+          {items && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <span className="rounded-full bg-muted px-3 py-1">
+                {summarize(items, now).searching} đơn tìm tài xế lâu
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1">
+                {summarize(items, now).gps} đơn mất GPS tài xế
+              </span>
+              <label className="inline-flex min-h-11 items-center gap-2 font-semibold">
+                <input
+                  type="checkbox"
+                  className="m-0 size-5 w-auto"
+                  checked={onlyExceptions}
+                  onChange={(event) => setOnlyExceptions(event.target.checked)}
+                />
+                Chỉ hiện ngoại lệ
+              </label>
+            </div>
+          )}
         </CardContent>
       </Card>
       {error && (
@@ -160,18 +192,19 @@ export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api
             <p role="status" className="m-0 py-6 text-sm text-muted-foreground">
               Đang tải…
             </p>
-          ) : items.length === 0 ? (
+          ) : visible!.length === 0 ? (
             <p role="status" className="m-0 py-6 text-sm text-muted-foreground">
               Không có đơn phù hợp.
             </p>
           ) : (
             <ul className="m-0 grid list-none gap-3 p-0">
-              {items.map((order) => {
+              {visible!.map((order) => {
                 const age = locationAge(order, now);
+                const exceptions = orderExceptions(order, now);
                 return (
                   <li
                     key={order.id}
-                    className="grid gap-3 rounded-xl border border-border p-4 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-center"
+                    className={`grid gap-3 rounded-xl border p-4 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-center ${exceptions.length ? 'border-destructive' : 'border-border'}`}
                   >
                     <div className="grid min-w-0 gap-1">
                       <strong className="break-words">
@@ -180,6 +213,18 @@ export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api
                       <small className="text-muted-foreground">
                         {time.format(new Date(order.createdAt))} · {vnd.format(order.priceVnd)} ₫
                       </small>
+                      {exceptions.length > 0 && (
+                        <span className="flex flex-wrap gap-2">
+                          {exceptions.map((item) => (
+                            <span
+                              key={item.kind}
+                              className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive"
+                            >
+                              ⚠ {exceptionLabel(item)}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </div>
                     <div className="grid min-w-0 gap-1">
                       <span className="font-semibold">{orderStatusLabels[order.status]}</span>
