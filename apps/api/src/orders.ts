@@ -45,6 +45,8 @@ import { RealtimeHub } from './realtime-hub';
 import { Metrics } from './metrics';
 
 const QUOTE_TTL_SECONDS = 600;
+const OFFER_BATCH = 50;
+const OFFER_TICK_BUDGET_MS = 1_000;
 const MAX_OPEN_ORDERS_PER_CUSTOMER = 3;
 const ACTIVE = `('${ACTIVE_DRIVER_STATUSES.join("','")}')`;
 const uuid = z.uuid();
@@ -690,15 +692,35 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return count;
   }
 
+  /**
+   * Offers drivers to waiting orders in batches until none are left or the tick budget is spent,
+   * so a burst of orders is not throttled to one small batch per tick. Orders already scanned in
+   * this tick (e.g. no driver nearby) are skipped so the loop always terminates.
+   */
   private async offerNext() {
+    const started = Date.now();
+    const scanned: string[] = [];
+    let offered = 0;
+    for (;;) {
+      const batch = await this.offerBatch(scanned);
+      offered += batch.offered;
+      if (batch.scanned < OFFER_BATCH || Date.now() - started > OFFER_TICK_BUDGET_MS) break;
+    }
+    return offered;
+  }
+
+  private async offerBatch(scanned: string[]) {
     const config = loadConfig();
     const candidates = (
       await this.database.pool.query<{ id: string }>(
         `SELECT o.id FROM orders o WHERE o.status = 'SEARCHING' AND o.search_deadline > now()
+         AND NOT (o.id = ANY($1::uuid[]))
          AND NOT EXISTS (SELECT 1 FROM order_offers f WHERE f.order_id = o.id AND f.status = 'pending')
-         ORDER BY o.created_at LIMIT 20`,
+         ORDER BY o.created_at LIMIT $2`,
+        [scanned, OFFER_BATCH],
       )
     ).rows;
+    scanned.push(...candidates.map((row) => row.id));
     let offered = 0;
     for (const { id } of candidates)
       await this.database.transaction(async (client) => {
@@ -746,7 +768,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         });
         offered += 1;
       });
-    return offered;
+    return { offered, scanned: candidates.length };
   }
 }
 

@@ -22,6 +22,7 @@
     "test:web:e2e": "playwright test",
     "test:web:e2e:real": "playwright test -c playwright.real.config.ts",
     "gate:web011": "node scripts/web011-gate.mjs",
+    "test:load": "node tests/load/dispatch-load.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
     "test:integration": "npm run test:integration -w @shango/api",
     "db:migrate": "npm run db:migrate -w @shango/api"

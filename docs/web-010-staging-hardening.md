@@ -112,5 +112,5 @@ ssh -L 9090:127.0.0.1:9090 <vps>   # mở http://127.0.0.1:9090
   hướng dẫn sau 10 giây chờ.
 - Thu thập metrics/log tập trung và alert (chưa có Prometheus/Grafana); log JSON hiện chỉ có
   requestId/method/status/thời gian.
-- Load test dispatch/socket; pentest; DPIA/quy trình dữ liệu cá nhân.
+- Load test trên staging (đã có script và số đo local, xem [load test](load-test.md)); pentest; DPIA/quy trình dữ liệu cá nhân.
 - Evidence thiết bị thật WEB-002 và PO duyệt bảng giá, phí, ledger, bằng chứng giao hàng.
