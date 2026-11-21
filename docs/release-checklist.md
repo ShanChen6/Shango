@@ -51,6 +51,8 @@ truy cập hoặc lộ dữ liệu; double assignment; outbox pending tăng liê
 
 ## E. Theo dõi
 
+Luật tương ứng nằm ở `deploy/prometheus/alerts.yml` (profile compose `monitoring`).
+
 | Metric                                                        | Cảnh báo gợi ý                                    |
 | ------------------------------------------------------------- | ------------------------------------------------- |
 | `shango_outbox_oldest_pending_seconds`                        | > 30 giây trong 5 phút                            |

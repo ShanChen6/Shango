@@ -23,6 +23,17 @@
 `main.tsx` chỉ còn khởi tạo API (legacy bearer hoặc cookie auth theo `VITE_WEB_AUTH_ENABLED`);
 giao diện nằm trong `admin-app.tsx`. Cả hai transport dùng cùng một giao diện.
 
+## Điều phối ngoại lệ (bổ sung 2026-11-21)
+
+Tab Đơn hàng có đếm và lọc **"Chỉ hiện ngoại lệ"** (`lib/dispatch.ts`, có unit test):
+
+- Đơn `SEARCHING` quá 2 phút, hoặc còn ≤ 60 giây trước khi hết hạn tìm.
+- Đơn đang chạy mà GPS tài xế cũ ≥ 60 giây hoặc chưa có GPS. Chỉ cảnh báo để điều phối viên liên hệ;
+  **không** tự hủy hay gán lại.
+
+Ngưỡng là giả thuyết vận hành (WEB-002), chưa phải chính sách PO. Bộ lọc chạy trên 100 đơn gần nhất
+mà API trả về.
+
 ## Kiểm thử
 
 - Unit: `src/lib/navigation.test.ts` (vai trò → mục, deep link, đọc status lỗi). Vitest Admin

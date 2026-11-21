@@ -39,6 +39,13 @@
 - Nút **Bật sẵn sàng** luôn disabled: server hiện chỉ cho phép offline (SG-018) và chưa có
   presence/dispatch.
 
+## Bổ sung 2026-11-21
+
+- Cảnh báo đề nghị mới khi trang đang mở: tiêu đề tab nhấp nháy, rung (nếu hỗ trợ), tiếng bíp
+  WebAudio sau lần chạm đầu (bật/tắt, nhớ theo thiết bị). Không phải push notification; trang bị
+  treo ở nền thì không có cảnh báo (giới hạn đã nêu ở WEB-002).
+- GPS khi đứng yên: khởi động lại `watchPosition` sau 12 giây không có fix (xem WEB-002).
+
 ## Parity checklist
 
 - [x] Login/bootstrap/logout và role gate: WEB-005.
@@ -52,8 +59,9 @@
 - [x] Contract E2E tự động với `/auth/web/*` server thật trong CI: job `web-contract-e2e`
   (`tests/web-e2e-real`), xanh tại [run #33](https://github.com/ShanChen6/Shango/actions/runs/44900111922).
 - [x] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao: WEB-009 lát 1
-  ([WEB-009](web-009-orders-dispatch.md)). Bản đồ dẫn đường cho tài xế chưa có.
-- [ ] Tracking production + reconnect/snapshot — phụ thuộc evidence thiết bị thật WEB-002 và PO.
+  ([WEB-009](web-009-orders-dispatch.md)). Dẫn đường bằng link "Mở chỉ đường (Google Maps)", chế độ
+  `two-wheeler` cho xe máy; tọa độ điểm đến chỉ được gửi cho Google khi tài xế bấm link.
+- [ ] Tracking production + reconnect/snapshot (đo bằng `/gps-lab`, xem [WEB-002](web-002-browser-evidence.md)) — phụ thuộc evidence thiết bị thật WEB-002 và PO.
 - [ ] QA Safari iOS/Chrome Android thật cho file picker và camera capture.
 
 ## Thay đổi dùng chung

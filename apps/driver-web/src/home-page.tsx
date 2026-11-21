@@ -5,7 +5,7 @@ import type { Order, OrderStatus } from '@shango/contracts';
 import { WebApiError } from '@shango/api-client';
 import { Badge, Button, Card, InlineAlert, PageHeader } from '@shango/ui';
 import { useDriverDocuments, useDriverProfile, type WebApi } from './driver-data';
-import { formatAge, freshnessLabels, onboardingSteps } from './driver-policy';
+import { directionsUrl, formatAge, freshnessLabels, onboardingSteps } from './driver-policy';
 import { useWork, workKeys } from './driver-work';
 
 const stepLinks = { vehicle: '/profile', documents: '/documents', review: '/profile' } as const;
@@ -53,6 +53,12 @@ function LocationCheck() {
           Máy chủ chưa nhận vị trí gần nhất ({lastSend.result.reason}).
         </InlineAlert>
       )}
+      {location.waitingForMs !== null && location.waitingForMs >= 10_000 && (
+        <InlineAlert tone="warning">
+          Chưa nhận được vị trí. Nếu trình duyệt đang hỏi quyền, hãy chọn Cho phép; nếu đã bỏ qua
+          hoặc chặn, mở cài đặt trang web để bật Vị trí rồi thử lại.
+        </InlineAlert>
+      )}
       {freshness === 'denied' && (
         <InlineAlert tone="warning">
           Trình duyệt đang chặn quyền vị trí. Mở cài đặt trang web, cho phép Vị trí rồi bấm kiểm tra
@@ -81,6 +87,9 @@ function LocationCheck() {
           thể đã ngừng cập nhật GPS trong thời gian đó.
         </InlineAlert>
       )}
+      <p>
+        <NavLink to="/gps-lab">Công cụ đo GPS cho tester (WEB-002)</NavLink>
+      </p>
       {!sharing &&
         (location.active ? (
           <Button type="button" className="secondary" onClick={location.stop}>
@@ -138,6 +147,14 @@ function Availability({ approved }: { approved: boolean }) {
           {work.wantsOnline ? 'Đang lấy vị trí…' : 'Bật sẵn sàng'}
         </Button>
       )}
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={work.offerSound}
+          onChange={(event) => work.setOfferSound(event.target.checked)}
+        />
+        Âm báo khi có đề nghị (cần chạm vào trang một lần để bật âm thanh)
+      </label>
       <small id="availability-gate" className="hint">
         Bật sẵn sàng sẽ gửi vị trí khi trang mở. Khóa màn hình hoặc chuyển tab có thể làm GPS dừng;
         đơn đã nhận không bị hủy vì mất GPS.
@@ -382,6 +399,14 @@ export function CurrentOrderPage({ api }: { api: WebApi }) {
                 {stop.contactName} · <a href={`tel:${stop.contactPhone}`}>{stop.contactPhone}</a>
               </p>
               {stop.note && <p className="hint">Ghi chú: {stop.note}</p>}
+              <a
+                className="action-link secondary-link"
+                href={directionsUrl(stop.position, order.vehicleType)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Mở chỉ đường (Google Maps)
+              </a>
             </div>
           ))}
           {action && (

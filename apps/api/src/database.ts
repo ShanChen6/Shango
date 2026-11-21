@@ -7,7 +7,7 @@ import { loadConfig } from './config';
 export class Database implements OnModuleDestroy {
   readonly pool = new Pool({
     connectionString: loadConfig().DATABASE_URL,
-    max: 10,
+    max: loadConfig().DB_POOL_MAX,
     connectionTimeoutMillis: 3000,
     statement_timeout: 5000,
   });

@@ -28,7 +28,8 @@
 - [x] Contract E2E tự động với `/auth/web/*` server thật trong CI: job `web-contract-e2e`
   (`tests/web-e2e-real`), xanh tại [run #33](https://github.com/ShanChen6/Shango/actions/runs/44900111922).
 - [x] Quote/order/list/detail và trạng thái trực tiếp: WEB-009 lát 1
-  ([WEB-009](web-009-orders-dispatch.md)). Bản đồ vị trí tài xế trực tiếp chưa có.
+  ([WEB-009](web-009-orders-dispatch.md)). Chi tiết đơn có bản đồ điểm lấy/giao và vị trí tài xế
+  trực tiếp (cần cấu hình nguồn tile; nếu không có thì hiện vị trí tương đối kèm thông tin dạng chữ).
 
 WEB-006 không phải lý do để xóa `apps/customer`, `packages/mobile-ui` hoặc Expo CI. Parity
 chỉ hoàn tất đầy đủ sau backend contract/staging evidence; deprecation vẫn thuộc WEB-011.

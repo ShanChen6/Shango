@@ -10,14 +10,21 @@ export type ForegroundLocation = {
   lastError: string | null;
   /** Milliseconds the page last spent hidden while checking; tracking may have paused. */
   lastHiddenForMs: number | null;
+  /** Milliseconds since start without any fix (null when a fix arrived or not started). */
+  waitingForMs: number | null;
   start: () => void;
   stop: () => void;
 };
 
 export type Fix = { longitude: number; latitude: number; accuracy: number; recordedAt: string };
 
-/** Real fixes are requested at this cadence while active so a stationary driver stays fresh. */
-const POLL_MS = 10_000;
+/**
+ * Some providers only report on movement (and a pending getCurrentPosition can hang while a watch
+ * is active), so a stationary driver would go stale. When no fix arrived for RESTART_AFTER_MS we
+ * restart the watch, which asks the platform for a fresh fix (maximumAge 0). Never synthesized.
+ */
+const CHECK_MS = 4_000;
+const RESTART_AFTER_MS = 12_000;
 const OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 };
 
 /**
@@ -43,8 +50,10 @@ export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLoc
     watchId.current = null;
   };
 
+  const lastFixRef = useRef<number | null>(null);
   const onPosition = useCallback((position: GeolocationPosition) => {
-    setLastFixAt(Date.now());
+    lastFixRef.current = Date.now();
+    setLastFixAt(lastFixRef.current);
     setAccuracy(Math.round(position.coords.accuracy));
     setLastError(null);
     fixCallback.current?.({
@@ -78,10 +87,26 @@ export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLoc
     setDenied(false);
     setLastError(null);
     setLastFixAt(null);
+    lastFixRef.current = null;
     setAccuracy(null);
     setHiddenFor(null);
     setStartedAt(Date.now());
     watchId.current = navigator.geolocation.watchPosition(onPosition, onError, OPTIONS);
+    // Some browsers (e.g. Firefox) never call back when a prompt is dismissed or was blocked
+    // earlier; the Permissions API lets us say "blocked" instead of waiting forever.
+    navigator.permissions
+      ?.query({ name: 'geolocation' })
+      .then((status) => {
+        const apply = () => {
+          if (status.state === 'denied') {
+            setDenied(true);
+            clear();
+          }
+        };
+        apply();
+        status.onchange = apply;
+      })
+      .catch(() => undefined);
   }, [supported, onPosition, onError]);
 
   const active = startedAt !== null;
@@ -89,9 +114,13 @@ export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLoc
     if (!active) return;
     const tick = window.setInterval(() => setNow(Date.now()), 1000);
     const poll = window.setInterval(() => {
-      if (watchId.current !== null && document.visibilityState === 'visible')
-        navigator.geolocation.getCurrentPosition(onPosition, onError, OPTIONS);
-    }, POLL_MS);
+      const last = lastFixRef.current;
+      if (watchId.current === null || document.visibilityState !== 'visible' || last === null)
+        return;
+      if (Date.now() - last < RESTART_AFTER_MS) return;
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = navigator.geolocation.watchPosition(onPosition, onError, OPTIONS);
+    }, CHECK_MS);
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') hiddenAt.current = Date.now();
       else if (hiddenAt.current !== null) {
@@ -118,6 +147,7 @@ export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLoc
     now,
     lastError,
     lastHiddenForMs,
+    waitingForMs: active && lastFixAt === null && !permissionDenied ? now - startedAt! : null,
     start,
     stop,
   };

@@ -132,3 +132,19 @@ export function formatAge(ms: number) {
     ? `${seconds} giây trước`
     : `${Math.floor(seconds / 60)} phút ${seconds % 60} giây trước`;
 }
+
+/**
+ * External turn-by-turn link (opened only when the driver taps it; the destination is then
+ * shared with that map provider). ShanGo does not proxy or store the navigation session.
+ */
+export function directionsUrl(
+  destination: { longitude: number; latitude: number },
+  vehicleType: string,
+) {
+  const params = new URLSearchParams({
+    api: '1',
+    destination: `${destination.latitude.toFixed(6)},${destination.longitude.toFixed(6)}`,
+    travelmode: vehicleType === 'motorcycle' ? 'two-wheeler' : 'driving',
+  });
+  return `https://www.google.com/maps/dir/?${params}`;
+}

@@ -126,4 +126,5 @@ Kết hợp với cookie auth ([web auth server](web-auth-server.md)). Vite prox
 - Retention và lịch sử GPS; bản đồ trực tiếp cho khách (hiện chỉ hiện tuổi/sai số vị trí).
 - Polygon vùng phục vụ (SG-015) thay cho khung chữ nhật Hà Nội.
 - Evidence thiết bị thật WEB-002 trước khi bật cho tài xế thật. Ngưỡng 30/60 giây vẫn là giả thuyết.
-- Nhiều instance API (Redis adapter), metric/alert cho dispatch và outbox, dọn outbox đã publish.
+- Alert cho dispatch và outbox (metrics, Redis adapter và dọn outbox đã có ở WEB-010). OpenAPI cho các
+  endpoint đơn hàng đã có trong `docs/openapi.yaml`.

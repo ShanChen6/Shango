@@ -71,6 +71,21 @@ jobs:
           node-version: 24
       # Fails until WEB-002 evidence, parity checklists and release gates are closed.
       - run: node scripts/web011-gate.mjs
+  web-cross-browser:
+    name: web-cross-browser
+    runs-on: ubuntu-latest
+    env:
+      PW_CROSS_BROWSER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps firefox webkit
+      - run: npx playwright test --project=firefox --project=webkit --project=webkit-mobile
   web-e2e-real:
     name: web-contract-e2e
     runs-on: ubuntu-latest
@@ -123,4 +138,8 @@ jobs:
             shango/web:${{ github.sha }} caddy validate --config /etc/caddy/Caddyfile
           cp deploy/staging.env.example deploy/ci.env
           sed -i 's/^\([A-Z_]*_SECRET\|POSTGRES_PASSWORD\|METRICS_TOKEN\)=$/\1=ci-placeholder-value-not-a-secret-0123456789/' deploy/ci.env
-          docker compose -f deploy/compose.staging.yaml --env-file deploy/ci.env config --quiet
+          docker compose -f deploy/compose.staging.yaml --env-file deploy/ci.env --profile monitoring config --quiet
+      - name: Validate Prometheus alert rules
+        run: |
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/prometheus:/p:ro" -w /p prom/prometheus:v3.5.0 check rules alerts.yml
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/prometheus:/p:ro" -w /p prom/prometheus:v3.5.0 test rules alerts.test.yml

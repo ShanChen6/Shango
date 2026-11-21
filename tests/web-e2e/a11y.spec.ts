@@ -150,6 +150,7 @@ const screens = [
   { name: 'Driver home', url: 'http://127.0.0.1:4175/', role: 'driver' },
   { name: 'Driver documents', url: 'http://127.0.0.1:4175/documents', role: 'driver' },
   { name: 'Driver profile', url: 'http://127.0.0.1:4175/profile', role: 'driver' },
+  { name: 'Driver GPS lab', url: 'http://127.0.0.1:4175/gps-lab', role: 'driver' },
   { name: 'Admin login', url: 'http://127.0.0.1:4176/', role: null },
   { name: 'Admin driver review', url: `http://127.0.0.1:4176/drivers/${DRIVER_ID}`, role: 'admin' },
   { name: 'Admin orders', url: 'http://127.0.0.1:4176/orders', role: 'admin' },

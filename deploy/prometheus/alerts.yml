@@ -1,0 +1,38 @@
+# Thresholds mirror docs/release-checklist.md (section E). They are starting points for the
+# staging/pilot, not PO-approved SLOs. Routing (email/chat) needs an Alertmanager receiver.
+groups:
+  - name: shango
+    rules:
+      - alert: ShangoApiDown
+        expr: up{job="shango-api"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: API không phản hồi metrics trong 2 phút
+      - alert: ShangoOutboxStalled
+        expr: shango_outbox_oldest_pending_seconds > 30
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: Sự kiện realtime chưa được gửi quá 30 giây (outbox kẹt)
+      - alert: ShangoHttp5xxRatio
+        expr: |
+          sum(rate(shango_http_requests_total{status="5xx"}[10m]))
+            / clamp_min(sum(rate(shango_http_requests_total[10m])), 1e-9) > 0.01
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Tỉ lệ lỗi 5xx vượt 1% trong 10 phút
+      - alert: ShangoHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(shango_http_request_duration_seconds_bucket[10m]))) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Độ trễ p95 của API vượt 1 giây
+      - alert: ShangoOrdersWaitingNoDrivers
+        expr: shango_orders_searching > 0 and shango_drivers_available_fresh == 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Có đơn đang tìm tài xế nhưng không có tài xế sẵn sàng với GPS mới

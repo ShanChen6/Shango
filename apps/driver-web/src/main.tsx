@@ -8,6 +8,7 @@ import { DocumentsPage } from './documents-page';
 import { CurrentOrderPage, HomePage, OffersPage } from './home-page';
 import { DriverWorkProvider, stopDriverRealtime } from './driver-work';
 import { ProfilePage } from './profile-page';
+import { GpsLabPage } from './gps-lab-page';
 import './style.css';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -134,6 +135,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
           <Route path="/order" element={<CurrentOrderPage api={api} />} />
           <Route path="/documents" element={<DocumentsPage api={api} />} />
           <Route path="/profile" element={<ProfilePage api={api} />} />
+          <Route path="/gps-lab" element={<GpsLabPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

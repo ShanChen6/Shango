@@ -21,7 +21,7 @@ import {
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
-import { Database } from './database';
+import { Cache, Database } from './database';
 import { loadConfig } from './config';
 import { AccessGuard, type AuthRequest, Roles } from './security';
 import { parse } from './validation';
@@ -45,6 +45,9 @@ import { RealtimeHub } from './realtime-hub';
 import { Metrics } from './metrics';
 
 const QUOTE_TTL_SECONDS = 600;
+const LOCATION_MIN_INTERVAL_MS = 1_000;
+const OFFER_BATCH = 50;
+const OFFER_TICK_BUDGET_MS = 1_000;
 const MAX_OPEN_ORDERS_PER_CUSTOMER = 3;
 const ACTIVE = `('${ACTIVE_DRIVER_STATUSES.join("','")}')`;
 const uuid = z.uuid();
@@ -92,6 +95,7 @@ export class OrdersService {
   constructor(
     @Inject(Database) private readonly database: Database,
     @Inject(RealtimeHub) private readonly hub: RealtimeHub,
+    @Inject(Cache) private readonly cache: Cache,
   ) {}
 
   async snapshot(orderId: string, client: Pick<PoolClient, 'query'> = this.database.pool) {
@@ -251,6 +255,15 @@ export class OrdersService {
     const fix = parse(locationFixSchema, body);
     const verdict = judgeFix(fix, Date.now());
     if (verdict !== 'ok') return { accepted: false, reason: verdict };
+    // At most one stored fix per driver per second, whatever the client does (socket or REST).
+    const slot = await this.cache.redis.set(
+      `gps:throttle:${driverId}`,
+      '1',
+      'PX',
+      LOCATION_MIN_INTERVAL_MS,
+      'NX',
+    );
+    if (!slot) return { accepted: false, reason: 'throttled' };
     const profile = (
       await this.database.pool.query<{ status: string }>(
         'SELECT status FROM driver_profiles WHERE user_id = $1',
@@ -690,15 +703,35 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return count;
   }
 
+  /**
+   * Offers drivers to waiting orders in batches until none are left or the tick budget is spent,
+   * so a burst of orders is not throttled to one small batch per tick. Orders already scanned in
+   * this tick (e.g. no driver nearby) are skipped so the loop always terminates.
+   */
   private async offerNext() {
+    const started = Date.now();
+    const scanned: string[] = [];
+    let offered = 0;
+    for (;;) {
+      const batch = await this.offerBatch(scanned);
+      offered += batch.offered;
+      if (batch.scanned < OFFER_BATCH || Date.now() - started > OFFER_TICK_BUDGET_MS) break;
+    }
+    return offered;
+  }
+
+  private async offerBatch(scanned: string[]) {
     const config = loadConfig();
     const candidates = (
       await this.database.pool.query<{ id: string }>(
         `SELECT o.id FROM orders o WHERE o.status = 'SEARCHING' AND o.search_deadline > now()
+         AND NOT (o.id = ANY($1::uuid[]))
          AND NOT EXISTS (SELECT 1 FROM order_offers f WHERE f.order_id = o.id AND f.status = 'pending')
-         ORDER BY o.created_at LIMIT 20`,
+         ORDER BY o.created_at LIMIT $2`,
+        [scanned, OFFER_BATCH],
       )
     ).rows;
+    scanned.push(...candidates.map((row) => row.id));
     let offered = 0;
     for (const { id } of candidates)
       await this.database.transaction(async (client) => {
@@ -746,7 +779,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         });
         offered += 1;
       });
-    return offered;
+    return { offered, scanned: candidates.length };
   }
 }
 

@@ -170,3 +170,36 @@ input[type='file']:focus-visible + .file-button,
   font-size: 2rem;
   font-weight: 900;
 }
+.action-link.secondary-link {
+  color: var(--sg-brand);
+  background: white;
+  border: 2px solid var(--sg-brand);
+}
+.lab-stats {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.25rem;
+}
+.lab-row {
+  width: 100%;
+  min-width: 0;
+  font:
+    0.8rem/1.4 ui-monospace,
+    monospace;
+  padding: 0.5rem;
+  border: 1px solid #9cada5;
+  border-radius: var(--sg-radius-2);
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin: 0.5rem 0;
+  font-weight: 600;
+}
+.toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+}

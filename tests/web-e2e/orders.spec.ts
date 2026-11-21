@@ -255,6 +255,10 @@ test.describe('driver work flow', () => {
       'href',
       'tel:+84901234567',
     );
+    await expect(page.getByRole('link', { name: 'Mở chỉ đường (Google Maps)' })).toHaveAttribute(
+      'href',
+      'https://www.google.com/maps/dir/?api=1&destination=21.028000%2C105.852000&travelmode=two-wheeler',
+    );
     await page.getByRole('button', { name: 'Đã đến điểm lấy' }).click();
     await expect(page.getByRole('button', { name: 'Đã lấy hàng' })).toBeVisible();
     expect(statusBodies).toEqual([{ status: 'AT_PICKUP', expectedVersion: 2 }]);
@@ -315,4 +319,54 @@ test('Order screens fit supported viewport widths', async ({ page }) => {
       expect(overflow, `${path} at ${width}px`).toEqual([]);
     }
   }
+});
+
+test('Customer order map shows pickup, dropoff and moves the driver marker', async ({ page }) => {
+  await session(page, 'customer', 'customer-1');
+  await page.route('**/api/v1/maps/config', (route) => route.fulfill({ json: mapConfig }));
+  let current = {
+    ...baseOrder,
+    status: 'ASSIGNED',
+    version: 2,
+    driverId: 'driver-1',
+    stops: {
+      pickup: stop('Hồ Hoàn Kiếm, Hà Nội'),
+      dropoff: {
+        ...stop('Văn Miếu, Hà Nội'),
+        position: { longitude: 105.8355, latitude: 21.0293 },
+      },
+    },
+    driver: {
+      id: 'driver-1',
+      displayName: 'Bình',
+      vehiclePlate: '29A-123.45',
+      vehicleType: 'motorcycle',
+    },
+    driverLocation: {
+      longitude: 105.84,
+      latitude: 21.03,
+      accuracy: 20,
+      recordedAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
+    },
+  };
+  await page.route(`**/api/v1/orders/${ORDER_ID}`, (route) => route.fulfill({ json: current }));
+  await page.goto(`${CUSTOMER}/orders/${ORDER_ID}`);
+  await expect(page.getByRole('heading', { name: 'Bản đồ' })).toBeVisible();
+  const map = page.getByRole('img', { name: /Bản đồ đơn hàng/ });
+  await expect(map).toBeVisible();
+  // pickup + dropoff + driver + accuracy circle
+  await expect(map.locator('path.leaflet-interactive')).toHaveCount(4);
+  const before = await map.locator('path.leaflet-interactive').nth(2).getAttribute('d');
+  current = {
+    ...current,
+    version: 2,
+    driverLocation: { ...current.driverLocation, longitude: 105.85, latitude: 21.029 },
+  };
+  await page.reload();
+  await expect(map.locator('path.leaflet-interactive')).toHaveCount(4);
+  expect(await map.locator('path.leaflet-interactive').nth(2).getAttribute('d')).not.toBe(before);
+  current = { ...current, status: 'DELIVERED', version: 6, driverLocation: null };
+  await page.reload();
+  await expect(map.locator('path.leaflet-interactive')).toHaveCount(2);
 });

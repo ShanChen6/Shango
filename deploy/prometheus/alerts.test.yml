@@ -1,0 +1,46 @@
+# promtool test rules deploy/prometheus/alerts.test.yml
+rule_files:
+  - alerts.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="shango-api"}'
+        values: '1 1 0 0 0 0'
+      - series: 'shango_outbox_oldest_pending_seconds'
+        values: '0 45 45 45 45 45 45 45'
+      - series: 'shango_orders_searching'
+        values: '2x15'
+      - series: 'shango_drivers_available_fresh'
+        values: '0x15'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: ShangoApiDown
+        exp_alerts:
+          - exp_labels: { severity: critical, job: shango-api }
+            exp_annotations: { summary: API không phản hồi metrics trong 2 phút }
+      - eval_time: 3m
+        alertname: ShangoOutboxStalled
+        exp_alerts: []
+      - eval_time: 7m
+        alertname: ShangoOutboxStalled
+        exp_alerts:
+          - exp_labels: { severity: critical }
+            exp_annotations: { summary: Sự kiện realtime chưa được gửi quá 30 giây (outbox kẹt) }
+      - eval_time: 11m
+        alertname: ShangoOrdersWaitingNoDrivers
+        exp_alerts:
+          - exp_labels: { severity: warning }
+            exp_annotations: { summary: Có đơn đang tìm tài xế nhưng không có tài xế sẵn sàng với GPS mới }
+  - interval: 1m
+    input_series:
+      - series: 'shango_http_requests_total{method="GET",status="2xx"}'
+        values: '0+90x20'
+      - series: 'shango_http_requests_total{method="GET",status="5xx"}'
+        values: '0+10x20'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ShangoHttp5xxRatio
+        exp_alerts:
+          - exp_labels: { severity: warning }
+            exp_annotations: { summary: Tỉ lệ lỗi 5xx vượt 1% trong 10 phút }

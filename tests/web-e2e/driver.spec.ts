@@ -169,9 +169,7 @@ test('Driver rejects unsupported files before any upload', async ({ page }) => {
   expect(uploads).toBe(0);
 });
 
-test('Approved driver views private documents read-only and may go online', async ({
-  page,
-}) => {
+test('Approved driver views private documents read-only and may go online', async ({ page }) => {
   await mockDriverSession(page);
   await mockDriverData(page, {
     profile: makeProfile({ status: 'approved' }),
@@ -241,7 +239,13 @@ test.describe('foreground location check', () => {
   });
 });
 
-test('Driver location check explains a denied permission', async ({ page, context }) => {
+test('Driver location check explains a denied permission', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  // Firefox automation leaves an unanswered prompt instead of denying; covered by the stubs below.
+  test.skip(browserName === 'firefox', 'Firefox does not auto-deny geolocation under automation');
   await context.clearPermissions();
   await mockDriverSession(page);
   await mockDriverData(page, { profile: makeProfile(), items: [] });
@@ -249,6 +253,52 @@ test('Driver location check explains a denied permission', async ({ page, contex
   await page.getByRole('button', { name: 'Kiểm tra vị trí' }).click();
   await expect(page.getByText('Bị chặn quyền vị trí')).toBeVisible();
   await expect(page.getByText(/cho phép Vị trí/)).toBeVisible();
+});
+
+/** Replaces geolocation/permissions so every browser engine follows the same scenario. */
+async function stubGeolocation(
+  page: import('@playwright/test').Page,
+  permission: 'prompt' | 'denied',
+) {
+  await page.addInitScript((state) => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: () => 1,
+        clearWatch: () => undefined,
+        getCurrentPosition: () => undefined,
+      },
+    });
+    Object.defineProperty(navigator, 'permissions', {
+      configurable: true,
+      value: { query: async () => ({ state, onchange: null }) },
+    });
+  }, permission);
+}
+
+test('Driver sees "blocked" from the Permissions API even when the browser never answers', async ({
+  page,
+}) => {
+  await stubGeolocation(page, 'denied');
+  await mockDriverSession(page);
+  await mockDriverData(page, { profile: makeProfile(), items: [] });
+  await page.goto(DRIVER_URL);
+  await page.getByRole('button', { name: 'Kiểm tra vị trí' }).click();
+  await expect(page.getByText('Bị chặn quyền vị trí')).toBeVisible();
+  await expect(page.getByText(/cho phép Vị trí/)).toBeVisible();
+});
+
+test('Driver gets guidance when a location prompt stays unanswered', async ({ page }) => {
+  await page.clock.install();
+  await stubGeolocation(page, 'prompt');
+  await mockDriverSession(page);
+  await mockDriverData(page, { profile: makeProfile(), items: [] });
+  await page.goto(DRIVER_URL);
+  await page.getByRole('button', { name: 'Kiểm tra vị trí' }).click();
+  await expect(page.getByText('Đang chờ vị trí')).toBeVisible();
+  await expect(page.getByText(/Nếu trình duyệt đang hỏi quyền/)).toHaveCount(0);
+  await page.clock.fastForward(11_000);
+  await expect(page.getByText(/Nếu trình duyệt đang hỏi quyền/)).toBeVisible();
 });
 
 test('Driver documents screen fits supported viewport widths', async ({ page }) => {
@@ -271,4 +321,138 @@ test('Driver documents screen fits supported viewport widths', async ({ page }) 
       expect(overflow, `${path} at ${width}px`).toEqual([]);
     }
   }
+});
+
+test.describe('WEB-002 gps lab', () => {
+  test.use({
+    permissions: ['geolocation'],
+    geolocation: { longitude: 105.852, latitude: 21.028, accuracy: 14 },
+  });
+  test('records timing and accuracy only and exports a coordinate-free evidence row', async ({
+    page,
+  }) => {
+    await mockDriverSession(page);
+    await mockDriverData(page, { profile: makeProfile(), items: [] });
+    const apiCalls: string[] = [];
+    page.on('request', (request) => {
+      if (
+        request.method() !== 'GET' &&
+        request.url().includes('/api/v1/') &&
+        !request.url().includes('/auth/web/')
+      )
+        apiCalls.push(request.url());
+    });
+    await page.goto(`${DRIVER_URL}/gps-lab`);
+    await expect(page.getByRole('heading', { name: 'Đo GPS trình duyệt', level: 1 })).toBeVisible();
+    await page.getByLabel(/Tên thiết bị/).fill('Pixel 8 | lab');
+    await page.getByLabel('Kịch bản').selectOption('foreground-2m');
+    await page.getByRole('button', { name: 'Bắt đầu đo' }).click();
+    await expect(page.getByText(/[1-9]\d* fix/).first()).toBeVisible();
+    // Emulated GPS only reports on movement, so move the device twice (real phones also poll).
+    await page.context().setGeolocation({ longitude: 105.853, latitude: 21.029, accuracy: 14 });
+    await expect(page.getByText(/· 2 fix ·/)).toBeVisible();
+    await page.waitForTimeout(1100);
+    await page.context().setGeolocation({ longitude: 105.854, latitude: 21.03, accuracy: 14 });
+    await expect(page.getByText(/· 3 fix ·/)).toBeVisible();
+    await page.getByRole('button', { name: 'Dừng đo' }).click();
+    await expect(page.getByText(/Khoảng cách fix median\/max: \d/)).toBeVisible();
+    const row = await page.getByLabel('Dòng cho docs/web-002-browser-evidence.md').inputValue();
+    expect(row.split(' | ')).toHaveLength(11);
+    expect(row).toContain('Pixel 8 / lab');
+    expect(row).toContain('Foreground 2 phút');
+    expect(row).toMatch(/\| 14\/14 m \|/);
+    expect(row).not.toContain('105.85');
+    expect(row).not.toMatch(/21\.0[23]/);
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Tải JSON (không có tọa độ)' }).click();
+    const file = await (await download).path();
+    const json = (await import('node:fs')).readFileSync(file!, 'utf8');
+    expect(json).toContain('shango-gps-lab');
+    expect(json).not.toMatch(/latitude|longitude|105\.85|21\.0[23]/);
+    expect(apiCalls).toEqual([]);
+  });
+});
+
+test.describe('stationary driver GPS', () => {
+  test.use({
+    permissions: ['geolocation'],
+    geolocation: { longitude: 105.852, latitude: 21.028, accuracy: 14 },
+  });
+  test('restarts the watch to get fresh real fixes when the position does not change', async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await mockDriverSession(page);
+    await mockDriverData(page, { profile: makeProfile(), items: [] });
+    await page.goto(`${DRIVER_URL}/gps-lab`);
+    await page.getByRole('button', { name: 'Bắt đầu đo' }).click();
+    await expect(page.getByText(/· 1 fix ·/)).toBeVisible();
+    // No movement: emulated GPS stays silent until the watch is restarted after 12 s.
+    await page.clock.runFor(13_000);
+    await expect(page.getByText(/· 2 fix ·/)).toBeVisible();
+    await page.clock.runFor(13_000);
+    await expect(page.getByText(/· 3 fix ·/)).toBeVisible();
+  });
+});
+
+test('Driver is alerted about a new offer and the alert clears when it is gone', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __vibrations: unknown[] }).__vibrations = [];
+    Object.defineProperty(navigator, 'vibrate', {
+      configurable: true,
+      value: (pattern: unknown) => {
+        (window as unknown as { __vibrations: unknown[] }).__vibrations.push(pattern);
+        return true;
+      },
+    });
+  });
+  await mockDriverSession(page);
+  await mockDriverData(page, { profile: makeProfile({ status: 'approved' }), items: [] });
+  let offer: Record<string, unknown> | null = null;
+  await page.route('**/api/v1/drivers/me/offers/current', (route) =>
+    route.fulfill({ json: { offer } }),
+  );
+  await page.route('**/api/v1/drivers/me/orders/current', (route) =>
+    route.fulfill({ json: { order: null } }),
+  );
+  await page.route('**/api/v1/drivers/me/presence', (route) =>
+    route.fulfill({
+      json: { available: true, lastSeenAt: new Date().toISOString(), accuracy: 10, fresh: true },
+    }),
+  );
+  await page.goto(DRIVER_URL);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  const original = await page.title();
+  expect(original).not.toContain('Đề nghị mới');
+  await page.getByLabel(/Âm báo khi có đề nghị/).uncheck();
+
+  offer = {
+    id: '6cdf06f0-e000-4111-8111-00000000f001',
+    orderId: '6cdf06f0-e000-4111-8111-00000000f002',
+    expiresAt: new Date(Date.now() + 20_000).toISOString(),
+    pickupDistanceMeters: 300,
+    vehicleType: 'motorcycle',
+    distanceMeters: 3200,
+    durationSeconds: 600,
+    priceVnd: 31000,
+    pickup: { address: 'Hồ Hoàn Kiếm' },
+    dropoff: { address: 'Văn Miếu' },
+  };
+  await page.getByRole('link', { name: 'Đề nghị', exact: true }).click();
+  await expect(page).toHaveTitle(/Đề nghị mới/);
+  expect(
+    await page.evaluate(() => (window as unknown as { __vibrations: unknown[] }).__vibrations),
+  ).toEqual([[200, 100, 200]]);
+
+  offer = null;
+  await page.getByRole('link', { name: 'Trang chủ', exact: true }).click();
+  await page.getByRole('link', { name: 'Đề nghị', exact: true }).click();
+  await expect(page.getByText(/Chưa có đề nghị/)).toBeVisible();
+  await expect(page).toHaveTitle(original);
+  await page.reload();
+  await expect(page.getByLabel(/Âm báo khi có đề nghị/)).toHaveCount(0);
+  await page.getByRole('link', { name: 'Trang chủ', exact: true }).click();
+  await expect(page.getByLabel(/Âm báo khi có đề nghị/)).not.toBeChecked();
 });

@@ -17,6 +17,28 @@ thiết bị thật. Desktop/devtools chỉ smoke-test harness. Kết quả ph�
 - Reconnect: nhận snapshot authoritative trước, resubscribe và gửi fix mới; không replay
   mù quáng lệnh nghiệp vụ.
 
+## Cách đo bằng app Driver (`/gps-lab`, bổ sung 2026-11-21)
+
+Không cần chạy prototype riêng: mở app Driver trên điện thoại qua **HTTPS** (staging, hoặc máy dev
+có chứng chỉ được thiết bị tin cậy), đăng nhập tài khoản tài xế thử nghiệm, vào **Trang chủ →
+Công cụ đo GPS cho tester (WEB-002)**.
+
+1. Nhập tên thiết bị và ghi chú (chế độ pin, mạng, ngoài trời/trong nhà); trang tự nhận diện OS/browser.
+2. Chọn kịch bản, làm theo hướng dẫn hiện trên trang, bấm **Bắt đầu đo** rồi **Dừng đo**.
+3. Bấm **Sao chép dòng** và thay dòng "Chưa chạy" tương ứng trong bảng dưới. Có thể **Tải JSON** để
+   lưu nội bộ; file chỉ chứa thời điểm, sai số và sự kiện, **không có tọa độ**.
+
+Công cụ không gửi gì lên server và không bật trạng thái sẵn sàng. Cột "Reconnect" đo từ lúc có mạng
+lại đến khi socket kết nối lại (khi đó app tải lại snapshot).
+
+**Rủi ro cần đo, ghi nhận 2026-11-21:** bản đầu gọi `getCurrentPosition` mỗi 10 giây để tài xế
+đứng yên không bị coi là mất GPS. Với geolocation giả lập của Chromium, các lời gọi này **treo khi
+tọa độ không đổi**. Đã đổi sang: quá 12 giây không có fix (kiểm tra mỗi 4 giây) thì **khởi động lại
+`watchPosition`** (`maximumAge: 0`), để nền tảng trả một fix thật mới; không bao giờ tự tạo vị trí.
+E2E "stationary driver GPS" kiểm chứng điều này trên Chromium, có mutation check. Trên thiết bị thật
+vẫn phải đo: kịch bản "Foreground 15 phút" nên có một đoạn đứng yên. Nếu "Interval max" vượt 30 giây
+khi đứng yên, hoặc pin tụt bất thường do restart, cần điều chỉnh trước pilot.
+
 ## Ma trận evidence
 
 Điền một dòng cho mỗi scenario/thiết bị. Không ghi “pass” nếu thiếu evidence đã khử tọa

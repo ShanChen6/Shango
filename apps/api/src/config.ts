@@ -26,6 +26,8 @@ export const environmentSchema = z
     DISPATCH_RADIUS_M: z.coerce.number().int().min(100).max(50_000).default(5000),
     DISPATCH_OFFER_SECONDS: z.coerce.number().int().min(5).max(300).default(20),
     DISPATCH_SEARCH_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
+    // PostgreSQL pool per API process (load test: 10 was the burst bottleneck).
+    DB_POOL_MAX: z.coerce.number().int().min(2).max(100).default(10),
     DISPATCH_TICK_MS: z.coerce.number().int().min(0).max(60_000).default(2000),
     // WEB-010 hardening.
     // Number of trusted reverse-proxy hops in front of the API (0 = connect directly).

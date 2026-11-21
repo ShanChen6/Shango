@@ -85,9 +85,30 @@ services:
     volumes: ['caddy_data:/data', 'caddy_config:/config']
     depends_on: [api]
 
+  # Optional: `--profile monitoring`. UI bound to localhost only (use an SSH tunnel).
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    secrets: [metrics_token]
+    ports: ['127.0.0.1:${PROMETHEUS_PORT:-9090}:9090']
+    depends_on: [api]
+
+secrets:
+  metrics_token:
+    environment: METRICS_TOKEN
+
 volumes:
   postgres_data:
   redis_data:
   private_documents:
   caddy_data:
   caddy_config:
+  prometheus_data:

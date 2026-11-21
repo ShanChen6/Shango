@@ -78,6 +78,24 @@ trong layer nào.
   - `respond` của Caddy bị `handle` vượt thứ tự (metrics và chặn IP không có tác dụng), nay dùng `route`;
   - `CORS_ORIGINS` thiếu cổng khi HTTPS không chạy trên 443, nay có `ORIGIN_PORT_SUFFIX`.
 
+## Giám sát (profile `monitoring`, bổ sung 2026-11-21)
+
+```bash
+IMAGE_TAG=<sha> docker compose -f deploy/compose.staging.yaml --env-file deploy/staging.env --profile monitoring up -d
+ssh -L 9090:127.0.0.1:9090 <vps>   # mở http://127.0.0.1:9090
+```
+
+- Prometheus `v3.5.0` scrape `api:3000/api/v1/health/metrics` trong mạng nội bộ. Token đi qua
+  compose secret (`/run/secrets/metrics_token`), không nằm trong file cấu hình. UI chỉ bind
+  `127.0.0.1`. Dữ liệu giữ 15 ngày.
+- Luật `deploy/prometheus/alerts.yml`: API không phản hồi, outbox kẹt > 30 giây, 5xx > 1%,
+  p95 > 1 giây, có đơn đang tìm nhưng 0 tài xế sẵn sàng. Có `promtool test rules`
+  (`alerts.test.yml`) và mutation check.
+- Đã chạy thử local: target `up`, 5 luật được nạp. Tắt API thì `ShangoApiDown` chuyển sang firing
+  sau khoảng 150 giây.
+- **Chưa có Alertmanager/kênh nhận cảnh báo**: cần chọn email, Telegram hay Slack và người trực.
+  Hiện cảnh báo chỉ xem được trên UI Prometheus.
+
 ## CI mới
 
 - `web-contract-e2e`: Postgres/Redis service, migrate, build, Playwright với API thật.
@@ -88,8 +106,11 @@ trong layer nào.
 
 - Provision VPS, DNS, firewall và người vận hành; deploy staging thật (cần quyết định và quyền).
 - SMS OTP thật; object storage/mã hóa/retention giấy tờ; backup ra ngoài máy (offsite) và lịch backup.
-- Cross-browser (Firefox, WebKit/Safari iOS, Chrome Android): CI và container này mới có Chromium.
+- Cross-browser **trên thiết bị thật** (Safari iOS, Chrome Android). Bộ E2E mock đã chạy tự động trên
+  Firefox, WebKit desktop và WebKit mobile (job CI `web-cross-browser`). Lần chạy đầu tìm ra lỗi:
+  Firefox để lời hỏi quyền vị trí treo, không báo lại cho app. App nay đọc Permissions API và hiện
+  hướng dẫn sau 10 giây chờ.
 - Thu thập metrics/log tập trung và alert (chưa có Prometheus/Grafana); log JSON hiện chỉ có
   requestId/method/status/thời gian.
-- Load test dispatch/socket; pentest; DPIA/quy trình dữ liệu cá nhân.
+- Load test trên staging (đã có script và số đo local, xem [load test](load-test.md)); pentest; DPIA/quy trình dữ liệu cá nhân.
 - Evidence thiết bị thật WEB-002 và PO duyệt bảng giá, phí, ledger, bằng chứng giao hàng.

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DriverDocument, DriverProfile } from '@shango/contracts';
 import {
   classifyFix,
+  directionsUrl,
   documentFileError,
   formatAge,
   MAX_DOCUMENT_BYTES,
@@ -99,5 +100,16 @@ describe('Driver web GPS freshness (WEB-002 hypotheses)', () => {
   it('formats ages for humans', () => {
     expect(formatAge(4_400)).toBe('4 giây trước');
     expect(formatAge(75_000)).toBe('1 phút 15 giây trước');
+  });
+});
+
+describe('Driver external directions', () => {
+  it('builds a lat,lng destination with the right travel mode', () => {
+    expect(directionsUrl({ longitude: 105.8342, latitude: 21.0278 }, 'motorcycle')).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=21.027800%2C105.834200&travelmode=two-wheeler',
+    );
+    expect(directionsUrl({ longitude: 105.8342, latitude: 21.0278 }, 'car')).toContain(
+      'travelmode=driving',
+    );
   });
 });
