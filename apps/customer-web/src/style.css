@@ -1,2 +1,102 @@
 @import '@shango/ui/src/tokens.css';
-.login-page { width: min(100% - 2rem, 34rem); margin: 0 auto; padding: 4rem 0; }.login-page form { display: grid; gap: 1rem; }.grid { display: grid; gap: 1rem; }.grid h2 { margin-bottom: .5rem; } @media (min-width: 48rem) { .grid { grid-template-columns: 1.2fr .8fr; } }
+.login-page {
+  width: min(100% - 2rem, 34rem);
+  margin: 0 auto;
+  padding: 4rem 0;
+}
+.login-page form,
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+.grid,
+.address-layout {
+  display: grid;
+  gap: 1rem;
+}
+.address-layout > *,
+.coordinate-grid > * {
+  min-width: 0;
+}
+.grid h2 {
+  margin-bottom: 0.5rem;
+}
+.action-link {
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: var(--sg-radius-2);
+  color: white;
+  background: var(--sg-brand);
+  text-decoration: none;
+  font-weight: 800;
+}
+.tab-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.tab-list button,
+.result {
+  min-height: 44px;
+  border: 1px solid #9cada5;
+  border-radius: 0.5rem;
+  color: var(--sg-text);
+  background: white;
+}
+.tab-list button[aria-pressed='true'] {
+  border: 3px solid var(--sg-brand);
+}
+.map-wrap {
+  position: relative;
+  margin-bottom: 1rem;
+}
+.map-canvas {
+  min-height: 20rem;
+  border-radius: 0.75rem;
+  background: #dce7df;
+}
+.map-fallback {
+  position: absolute;
+  z-index: 500;
+  top: 0.5rem;
+  right: 0.5rem;
+  left: 3rem;
+  padding: 0.5rem;
+  background: rgb(255 255 255 / 0.94);
+}
+.coordinate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.attribution {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--sg-brand);
+}
+.summary-card {
+  margin-top: 1rem;
+}
+.summary-card .sg-button {
+  margin-right: 0.75rem;
+}
+@media (min-width: 48rem) {
+  .grid {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
+  .address-layout {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: start;
+  }
+}
+@media (max-width: 30rem) {
+  .coordinate-grid {
+    grid-template-columns: 1fr;
+  }
+  .map-canvas {
+    min-height: 16rem;
+  }
+}
