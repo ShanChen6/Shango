@@ -1,0 +1,93 @@
+# ShanGo staging stack (single VPS). See docs/web-010-staging-hardening.md.
+#   cp deploy/staging.env.example deploy/staging.env   # fill secrets, hosts, CIDRs
+#   IMAGE_TAG=<git-sha> docker compose -f deploy/compose.staging.yaml --env-file deploy/staging.env up -d
+# Rollback: set IMAGE_TAG to the previous tag and run `up -d` again (migrations are additive only).
+name: shango-staging
+
+x-api-env: &api-env
+  NODE_ENV: development # the API refuses NODE_ENV=production until a real SMS provider exists
+  PORT: '3000'
+  DATABASE_URL: postgresql://shango:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/shango
+  REDIS_URL: redis://redis:6379/0
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+  OTP_SECRET: ${OTP_SECRET:?set OTP_SECRET}
+  CSRF_SECRET: ${CSRF_SECRET:?set CSRF_SECRET}
+  OTP_PROVIDER: development
+  OTP_DEV_PHONE_ALLOWLIST: ${OTP_DEV_PHONE_ALLOWLIST:?list tester phones}
+  WEB_AUTH_ENABLED: 'true'
+  # Browser Origins; set ORIGIN_PORT_SUFFIX (e.g. ":8443") only when HTTPS is not on 443.
+  CORS_ORIGINS: https://${CUSTOMER_HOST}${ORIGIN_PORT_SUFFIX:-},https://${DRIVER_HOST}${ORIGIN_PORT_SUFFIX:-},https://${ADMIN_HOST}${ORIGIN_PORT_SUFFIX:-}
+  TRUST_PROXY_HOPS: '1'
+  METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN}
+  ORDERS_ENABLED: ${ORDERS_ENABLED:-false}
+  OSRM_BASE_URL: ${OSRM_BASE_URL:-}
+  NOMINATIM_BASE_URL: ${NOMINATIM_BASE_URL:-}
+  TARIFF_VERSION: ${TARIFF_VERSION:-pilot-unapproved}
+  TARIFF_MOTORCYCLE_BASE_VND: ${TARIFF_MOTORCYCLE_BASE_VND:-}
+  TARIFF_MOTORCYCLE_PER_KM_VND: ${TARIFF_MOTORCYCLE_PER_KM_VND:-}
+  PRIVATE_DOCUMENTS_DIR: /data/private-documents
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shango
+      POSTGRES_USER: shango
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: ['postgres_data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shango -d shango']
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes: ['redis_data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 20
+
+  migrate:
+    image: ${REGISTRY:-shango}/api:${IMAGE_TAG:?set IMAGE_TAG}
+    environment: *api-env
+    command: ['node', 'dist/migrate.js']
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    image: ${REGISTRY:-shango}/api:${IMAGE_TAG:?set IMAGE_TAG}
+    restart: unless-stopped
+    environment: *api-env
+    volumes: ['private_documents:/data/private-documents']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    # Not published: reachable only through Caddy on the internal network.
+
+  web:
+    image: ${REGISTRY:-shango}/web:${IMAGE_TAG:?set IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      CUSTOMER_HOST: ${CUSTOMER_HOST:?set CUSTOMER_HOST}
+      DRIVER_HOST: ${DRIVER_HOST:?set DRIVER_HOST}
+      ADMIN_HOST: ${ADMIN_HOST:?set ADMIN_HOST}
+      STAGING_ALLOWED_CIDRS: ${STAGING_ALLOWED_CIDRS:?set STAGING_ALLOWED_CIDRS}
+      CADDY_GLOBAL_OPTIONS: ${CADDY_GLOBAL_OPTIONS:-}
+      MAP_TILE_ORIGIN: ${MAP_TILE_ORIGIN:-}
+    ports:
+      - '${WEB_HTTP_PORT:-80}:80'
+      - '${WEB_HTTPS_PORT:-443}:443'
+    volumes: ['caddy_data:/data', 'caddy_config:/config']
+    depends_on: [api]
+
+volumes:
+  postgres_data:
+  redis_data:
+  private_documents:
+  caddy_data:
+  caddy_config:

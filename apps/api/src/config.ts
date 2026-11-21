@@ -27,6 +27,35 @@ export const environmentSchema = z
     DISPATCH_OFFER_SECONDS: z.coerce.number().int().min(5).max(300).default(20),
     DISPATCH_SEARCH_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
     DISPATCH_TICK_MS: z.coerce.number().int().min(0).max(60_000).default(2000),
+    // WEB-010 hardening.
+    // Number of trusted reverse-proxy hops in front of the API (0 = connect directly).
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+    // Bearer token for GET /health/metrics; unset disables the endpoint.
+    METRICS_TOKEN: z.string().min(32).optional(),
+    OUTBOX_RETENTION_HOURS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 90)
+      .default(72),
+    // Socket.IO Redis adapter for more than one API instance.
+    SOCKET_REDIS_ADAPTER: z.enum(['true', 'false']).default('false'),
+    // Restricts the development OTP provider to listed E.164 test phones (staging).
+    OTP_DEV_PHONE_ALLOWLIST: z
+      .string()
+      .optional()
+      .transform((value) =>
+        value
+          ? value
+              .split(',')
+              .map((phone) => phone.trim())
+              .filter(Boolean)
+          : null,
+      )
+      .refine(
+        (list) => list === null || list.every((phone) => /^\+[1-9]\d{7,14}$/.test(phone)),
+        'Use comma-separated E.164 phones',
+      ),
     NOMINATIM_BASE_URL: z.string().url().optional(),
     NOMINATIM_PUBLIC_OPT_IN: z.enum(['true', 'false']).default('false'),
     NOMINATIM_USER_AGENT: z
@@ -116,7 +145,11 @@ export const environmentSchema = z
   });
 export type Config = z.infer<typeof environmentSchema>;
 export function loadConfig(): Config {
-  const parsed = environmentSchema.safeParse(process.env);
+  // Treat empty values (e.g. `OSRM_BASE_URL=` from compose/env files) as unset.
+  const environment = Object.fromEntries(
+    Object.entries(process.env).filter(([, value]) => value !== undefined && value !== ''),
+  );
+  const parsed = environmentSchema.safeParse(environment);
   if (!parsed.success)
     throw new Error(
       `Invalid environment: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,

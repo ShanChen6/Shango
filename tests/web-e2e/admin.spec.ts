@@ -267,6 +267,8 @@ test('Keyboard users can skip navigation to the main content', async ({ page }) 
     route.fulfill({ json: { items: [], page: 1, pageSize: 20, total: 0 } }),
   );
   await page.goto(`${ADMIN}/drivers`);
+  // Wait for session restore to finish so focus is not lost to a re-render.
+  await expect(page.getByRole('heading', { name: 'Duyệt hồ sơ tài xế', level: 1 })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Bỏ qua điều hướng' })).toBeFocused();
   await page.keyboard.press('Enter');

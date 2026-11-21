@@ -64,6 +64,10 @@ origin trong `apps/api/.env`, chạy `npm run db:migrate` rồi `npm run dev:cus
 `npm run dev:driver-web` hoặc Admin với `VITE_WEB_AUTH_ENABLED=true`. Xem
 [web auth server](docs/web-auth-server.md).
 
+### Staging (Docker Compose)
+
+Xem [WEB-010](docs/web-010-staging-hardening.md) và [release checklist](docs/release-checklist.md). Không deploy production.
+
 ### Kiểm thử
 
 ```sh

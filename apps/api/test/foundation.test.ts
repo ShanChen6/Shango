@@ -41,3 +41,53 @@ describe('authentication input', () => {
     expect(opaqueHash(token)).not.toContain(token);
   });
 });
+describe('deployment configuration', () => {
+  it('treats empty optional variables from env files as unset', async () => {
+    const { loadConfig } = await import('../src/config');
+    const keys = [
+      'DATABASE_URL',
+      'REDIS_URL',
+      'JWT_SECRET',
+      'OTP_SECRET',
+      'OTP_PROVIDER',
+      'CORS_ORIGINS',
+      'OSRM_BASE_URL',
+      'TARIFF_CAR_BASE_VND',
+      'NODE_ENV',
+    ] as const;
+    const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    Object.assign(process.env, environment, {
+      OSRM_BASE_URL: '',
+      TARIFF_CAR_BASE_VND: '',
+      NODE_ENV: 'test',
+    });
+    try {
+      const config = loadConfig();
+      expect(config.OSRM_BASE_URL).toBeUndefined();
+      expect(config.TARIFF_CAR_BASE_VND).toBeUndefined();
+    } finally {
+      for (const key of keys) {
+        if (saved[key] === undefined) delete process.env[key];
+        else process.env[key] = saved[key];
+      }
+    }
+  });
+  it('validates hardening settings', () => {
+    expect(environmentSchema.safeParse({ ...environment, TRUST_PROXY_HOPS: '9' }).success).toBe(
+      false,
+    );
+    expect(environmentSchema.safeParse({ ...environment, METRICS_TOKEN: 'short' }).success).toBe(
+      false,
+    );
+    expect(
+      environmentSchema.safeParse({ ...environment, OTP_DEV_PHONE_ALLOWLIST: '0901234567' })
+        .success,
+    ).toBe(false);
+    expect(
+      environmentSchema.parse({
+        ...environment,
+        OTP_DEV_PHONE_ALLOWLIST: '+84900000001, +84900000002',
+      }).OTP_DEV_PHONE_ALLOWLIST,
+    ).toEqual(['+84900000001', '+84900000002']);
+  });
+});

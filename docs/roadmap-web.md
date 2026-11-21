@@ -74,7 +74,9 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-009: **Lát 1 có code** — quote (giá thử nghiệm), đơn, điều phối offer lần lượt, state
   machine, outbox, Socket.IO snapshot/reconnect và UI Customer/Driver/Admin; mặc định tắt. Xem
   [WEB-009](web-009-orders-dispatch.md). Ledger, phí, bằng chứng giao vẫn chờ PO.
-- WEB-010: staging, security/performance/accessibility và pilot.
+- WEB-010: **Hardening + staging config có code** (Docker/Caddy/CSP, metrics, Redis adapter, backup/restore,
+  CI contract E2E + axe); chưa provision VPS/deploy. Xem [WEB-010](web-010-staging-hardening.md) và
+  [release checklist](release-checklist.md).
 - WEB-011: deprecate Expo, mobile packages/scripts sau migration verified.
 
 WEB-002–011 được tách thành deliverable, dependency và acceptance gate cụ thể trong

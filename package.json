@@ -20,10 +20,12 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test -w @shango/api && npm run test -w @shango/admin && npm run test -w @shango/customer-web && npm run test -w @shango/driver-web && npm run test -w @shango/api-client && npm run test -w @shango/ui",
     "test:web:e2e": "playwright test",
+    "test:web:e2e:real": "playwright test -c playwright.real.config.ts",
     "test:integration": "npm run test:integration -w @shango/api",
     "db:migrate": "npm run db:migrate -w @shango/api"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.65.1",
     "prettier": "^3.9.10"
   }

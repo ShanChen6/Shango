@@ -6,6 +6,9 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Server, type Socket } from 'socket.io';
+import Redis from 'ioredis';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { Metrics } from './metrics';
 import { z } from 'zod';
 import { Database } from './database';
 import { loadConfig } from './config';
@@ -41,7 +44,9 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
     @Inject(Database) private readonly database: Database,
     @Inject(OrdersService) private readonly orders: OrdersService,
     @Inject(RealtimeHub) private readonly hub: RealtimeHub,
+    @Inject(Metrics) private readonly metrics: Metrics,
   ) {}
+  private redisClients: Redis[] = [];
 
   onApplicationBootstrap() {
     const config = loadConfig();
@@ -62,7 +67,19 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
         () => next(new Error('unauthorized')),
       );
     });
-    io.on('connection', (socket) => this.onConnection(socket));
+    if (config.SOCKET_REDIS_ADAPTER === 'true') {
+      // Fan out emits across API instances; sticky sessions are still needed for polling.
+      const pub = new Redis(config.REDIS_URL, { maxRetriesPerRequest: 1 });
+      const sub = pub.duplicate();
+      pub.on('error', () => console.error(JSON.stringify({ event: 'socket.redis.error' })));
+      sub.on('error', () => console.error(JSON.stringify({ event: 'socket.redis.error' })));
+      this.redisClients = [pub, sub];
+      io.adapter(createAdapter(pub, sub));
+    }
+    io.on('connection', (socket) => {
+      this.metrics.inc('shango_socket_connections_total');
+      this.onConnection(socket);
+    });
     this.io = io;
     this.hub.server = io;
     if (config.ORDERS_ENABLED === 'true' && config.DISPATCH_TICK_MS !== 0) {
@@ -80,9 +97,13 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
     this.hub.server = null;
     if (this.io) {
       this.io.disconnectSockets(true);
+      // Unsubscribe the Redis adapter before its connections are closed.
+      const adapter = this.io.of('/').adapter as { close?: () => Promise<void> | void };
+      await Promise.resolve(adapter.close?.()).catch(() => undefined);
       // Engine shutdown without closing the shared HTTP server (Nest closes it).
       this.io.engine.close();
     }
+    await Promise.all(this.redisClients.map((client) => client.quit().catch(() => undefined)));
   }
 
   private async authenticate(socket: Socket) {
@@ -163,6 +184,7 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
           )
         ).rows;
         for (const row of rows) this.route(row);
+        if (rows.length) this.metrics.inc('shango_outbox_published_total', {}, rows.length);
         if (rows.length)
           await client.query(
             'UPDATE outbox_events SET published_at = now() WHERE id = ANY($1::uuid[])',

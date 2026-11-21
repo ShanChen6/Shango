@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ForbiddenException,
   Controller,
   Get,
   HttpCode,
@@ -71,6 +72,10 @@ export class AuthService {
   }
   /** `marker` is a legacy public role or a `web:<app>` marker; the two never interoperate. */
   async requestOtp(phone: string, marker: string, ip: string) {
+    const allowlist = loadConfig().OTP_DEV_PHONE_ALLOWLIST;
+    // Staging guard: the development provider returns the code, so only listed testers may log in.
+    if (allowlist && !allowlist.includes(phone))
+      throw new ForbiddenException('Số điện thoại chưa được phép trên môi trường thử nghiệm');
     await this.limit(`otp:ip:${identity(ip)}`, 30, 3600);
     await this.limit(`otp:phone:${identity(phone)}`, 5, 3600);
     const locked = await this.cache.redis.set(

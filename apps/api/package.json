@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude '**/*.integration.test.ts'",
-    "test:integration": "vitest run test/foundation.integration.test.ts test/maps.integration.test.ts test/profiles.integration.test.ts test/documents.integration.test.ts test/web-auth.integration.test.ts test/orders.integration.test.ts",
+    "test:integration": "vitest run test/foundation.integration.test.ts test/maps.integration.test.ts test/profiles.integration.test.ts test/documents.integration.test.ts test/web-auth.integration.test.ts test/orders.integration.test.ts test/hardening.integration.test.ts",
     "db:migrate": "tsx src/migrate.ts",
     "admin:grant": "tsx src/grant-admin.ts"
   },
@@ -16,6 +16,7 @@
     "@nestjs/common": "^12.3.2",
     "@nestjs/core": "^12.3.2",
     "@nestjs/platform-express": "^12.3.2",
+    "@socket.io/redis-adapter": "^8.3.0",
     "dotenv": "^17.2.3",
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",

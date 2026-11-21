@@ -11,6 +11,7 @@ import {
 } from './orders';
 import { RealtimeHub } from './realtime-hub';
 import { RealtimeGateway } from './realtime';
+import { Metrics, MetricsController } from './metrics';
 import { Cache, Database } from './database';
 import { AccessGuard } from './security';
 import { AdminDriversController, DriversController } from './drivers';
@@ -59,6 +60,7 @@ class HealthController {
     HealthController,
     AuthController,
     WebAuthController,
+    MetricsController,
     OrdersController,
     DriverWorkController,
     AdminOrdersController,
@@ -77,6 +79,7 @@ class HealthController {
     AuthService,
     WebAuthService,
     RealtimeHub,
+    Metrics,
     OrdersService,
     QuoteService,
     DispatchService,

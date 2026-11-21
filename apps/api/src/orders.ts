@@ -42,6 +42,7 @@ import {
   tariffFor,
 } from './orders-policy';
 import { RealtimeHub } from './realtime-hub';
+import { Metrics } from './metrics';
 
 const QUOTE_TTL_SECONDS = 600;
 const MAX_OPEN_ORDERS_PER_CUSTOMER = 3;
@@ -585,9 +586,11 @@ export class QuoteService {
 export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private running = false;
+  private lastCleanup = 0;
   constructor(
     @Inject(Database) private readonly database: Database,
     @Inject(OrdersService) private readonly orders: OrdersService,
+    @Inject(Metrics) private readonly metrics: Metrics,
   ) {}
 
   onModuleInit() {
@@ -610,10 +613,29 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       const expiredOffers = await this.expireOffers();
       const expiredOrders = await this.expireOrders();
       const offered = await this.offerNext();
+      this.metrics.inc('shango_dispatch_ticks_total');
+      this.metrics.inc('shango_dispatch_offers_total', {}, offered);
+      this.metrics.inc('shango_dispatch_offers_expired_total', {}, expiredOffers);
+      this.metrics.inc('shango_orders_expired_total', {}, expiredOrders);
+      if (Date.now() - this.lastCleanup > 3_600_000) {
+        this.lastCleanup = Date.now();
+        await this.cleanupOutbox();
+      }
       return { offered, expiredOrders, expiredOffers };
     } finally {
       this.running = false;
     }
+  }
+
+  /** Published outbox rows are only a delivery log; keep them for a bounded window. */
+  async cleanupOutbox() {
+    const result = await this.database.pool.query(
+      `DELETE FROM outbox_events WHERE id IN (
+         SELECT id FROM outbox_events WHERE published_at IS NOT NULL
+         AND published_at < now() - make_interval(hours => $1) LIMIT 5000)`,
+      [loadConfig().OUTBOX_RETENTION_HOURS],
+    );
+    return result.rowCount ?? 0;
   }
 
   private async expireOffers() {

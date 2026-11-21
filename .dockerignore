@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/dist-ci
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+**/.private-documents
+deploy/*.env
+deploy/backups
+playwright-report
+test-results
+prototypes
+apps/customer/android
+apps/customer/ios

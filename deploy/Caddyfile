@@ -1,0 +1,62 @@
+# ShanGo edge (staging). Each frontend host serves its static app and proxies /api and
+# /socket.io to the API on the same origin, so the refresh cookie stays host-only and
+# first-party and no cross-origin CORS is needed in the browser.
+#
+# Required env: CUSTOMER_HOST, DRIVER_HOST, ADMIN_HOST, STAGING_ALLOWED_CIDRS
+# Optional env: CADDY_GLOBAL_OPTIONS (e.g. "email ops@example.vn" or "local_certs"),
+#               MAP_TILE_ORIGIN (authorized tile host for img-src, e.g. https://tiles.example.vn)
+{
+	{$CADDY_GLOBAL_OPTIONS}
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+(app) {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Permissions-Policy "{args[1]}"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: {$MAP_TILE_ORIGIN}; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# `route` keeps the written order: access checks must run before any proxying.
+	route {
+		# Staging is not public: only listed networks reach it (plus the API OTP phone allowlist).
+		@denied not remote_ip {$STAGING_ALLOWED_CIDRS}
+		respond @denied "ShanGo staging: truy cập bị giới hạn" 403
+
+		# Metrics are scraped inside the private network (http://api:3000), never via the edge.
+		respond /api/v1/health/metrics 404
+
+		reverse_proxy /api/* api:3000
+		reverse_proxy /socket.io/* api:3000
+
+		root * /srv/{args[0]}
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/*
+		header @html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+{$CUSTOMER_HOST} {
+	import app customer "geolocation=(), camera=(), microphone=(), payment=()"
+}
+
+{$DRIVER_HOST} {
+	import app driver "geolocation=(self), camera=(), microphone=(), payment=()"
+}
+
+{$ADMIN_HOST} {
+	import app admin "geolocation=(), camera=(), microphone=(), payment=()"
+}
