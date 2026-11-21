@@ -14,11 +14,19 @@ export type ForegroundLocation = {
   stop: () => void;
 };
 
+export type Fix = { longitude: number; latitude: number; accuracy: number; recordedAt: string };
+
+/** Real fixes are requested at this cadence while active so a stationary driver stays fresh. */
+const POLL_MS = 10_000;
+const OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 };
+
 /**
- * Foreground-only location check. Coordinates stay inside this hook: they are not sent to
- * the API, persisted or logged. Production presence/tracking is WEB-009 behind the WEB-002 gate.
+ * Foreground-only location watch. Coordinates are only handed to `onFix`; the caller decides
+ * whether to send them (only while available or on an active order). Never persisted/logged here.
  */
-export function useForegroundLocation(): ForegroundLocation {
+export function useForegroundLocation(onFix?: (fix: Fix) => void): ForegroundLocation {
+  const fixCallback = useRef(onFix);
+  fixCallback.current = onFix;
   const supported = typeof navigator !== 'undefined' && 'geolocation' in navigator;
   const watchId = useRef<number | null>(null);
   const hiddenAt = useRef<number | null>(null);
@@ -30,9 +38,38 @@ export function useForegroundLocation(): ForegroundLocation {
   const [lastHiddenForMs, setHiddenFor] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
-  const stop = useCallback(() => {
+  const clear = () => {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     watchId.current = null;
+  };
+
+  const onPosition = useCallback((position: GeolocationPosition) => {
+    setLastFixAt(Date.now());
+    setAccuracy(Math.round(position.coords.accuracy));
+    setLastError(null);
+    fixCallback.current?.({
+      longitude: position.coords.longitude,
+      latitude: position.coords.latitude,
+      accuracy: position.coords.accuracy,
+      recordedAt: new Date(position.timestamp || Date.now()).toISOString(),
+    });
+  }, []);
+
+  const onError = useCallback((error: GeolocationPositionError) => {
+    if (error.code === error.PERMISSION_DENIED) {
+      setDenied(true);
+      clear();
+      return;
+    }
+    setLastError(
+      error.code === error.TIMEOUT
+        ? 'Hết thời gian chờ GPS. Đang tiếp tục thử.'
+        : 'Thiết bị chưa xác định được vị trí. Đang tiếp tục thử.',
+    );
+  }, []);
+
+  const stop = useCallback(() => {
+    clear();
     setStartedAt(null);
   }, []);
 
@@ -44,33 +81,17 @@ export function useForegroundLocation(): ForegroundLocation {
     setAccuracy(null);
     setHiddenFor(null);
     setStartedAt(Date.now());
-    watchId.current = navigator.geolocation.watchPosition(
-      (position) => {
-        setLastFixAt(Date.now());
-        setAccuracy(Math.round(position.coords.accuracy));
-        setLastError(null);
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setDenied(true);
-          if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
-          watchId.current = null;
-          return;
-        }
-        setLastError(
-          error.code === error.TIMEOUT
-            ? 'Hết thời gian chờ GPS. Đang tiếp tục thử.'
-            : 'Thiết bị chưa xác định được vị trí. Đang tiếp tục thử.',
-        );
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 },
-    );
-  }, [supported]);
+    watchId.current = navigator.geolocation.watchPosition(onPosition, onError, OPTIONS);
+  }, [supported, onPosition, onError]);
 
   const active = startedAt !== null;
   useEffect(() => {
     if (!active) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const tick = window.setInterval(() => setNow(Date.now()), 1000);
+    const poll = window.setInterval(() => {
+      if (watchId.current !== null && document.visibilityState === 'visible')
+        navigator.geolocation.getCurrentPosition(onPosition, onError, OPTIONS);
+    }, POLL_MS);
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') hiddenAt.current = Date.now();
       else if (hiddenAt.current !== null) {
@@ -81,17 +102,13 @@ export function useForegroundLocation(): ForegroundLocation {
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      window.clearInterval(timer);
+      window.clearInterval(tick);
+      window.clearInterval(poll);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [active]);
+  }, [active, onPosition, onError]);
 
-  useEffect(
-    () => () => {
-      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
-    },
-    [],
-  );
+  useEffect(() => () => clear(), []);
 
   return {
     active,

@@ -17,10 +17,14 @@ import type {
   DriverDocuments,
   DocumentKind,
   DocumentUpload,
+  Order,
+  OrderStatus,
 } from '@shango/contracts';
 
 export { createWebApi, WebApiError } from './web';
 export type { WebApp, WebRequestInit, WebSession } from './web';
+export { createRealtime } from './realtime';
+export type { RealtimeStatus } from './realtime';
 
 export class ApiError extends Error {
   constructor(
@@ -176,5 +180,9 @@ export function createApi(baseUrl: string, store: SessionStore) {
         expectedUpdatedAt,
         reason,
       }),
+    adminOrders: (status: OrderStatus | '' = '') =>
+      request<{ items: Order[] }>(`/admin/orders${status ? `?status=${status}` : ''}`),
+    cancelOrder: (id: string, expectedVersion: number, reason: string) =>
+      request<Order>(`/admin/orders/${id}/cancel`, 'POST', { expectedVersion, reason }),
   };
 }

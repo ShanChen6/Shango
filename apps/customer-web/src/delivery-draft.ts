@@ -17,7 +17,7 @@ export function normalizeContactPhone(value: string) { const cleaned = value.rep
 export function stopErrors(stop: DeliveryStop, config: MapConfig | null) {
   const errors: string[] = [];
   if (!config || !stop.position || !withinRegion(stop.position, config)) errors.push('Chọn điểm hợp lệ trong khung thử nghiệm Hà Nội.');
-  if (stop.label.trim().length < 3 || stop.label.length > 2000) errors.push('Nhập hoặc chọn địa chỉ cho điểm này.');
+  if (stop.label.trim().length < 3 || stop.label.length > 500) errors.push('Nhập hoặc chọn địa chỉ cho điểm này.');
   const name = stop.contactName.normalize('NFC').trim().replace(/\s+/g, ' ');
   if (name.length < 2 || name.length > 80 || /[\u0000-\u001f\u007f-\u009f]/.test(stop.contactName)) errors.push('Tên người liên hệ cần 2–80 ký tự.');
   if (!normalizeContactPhone(stop.contactPhone)) errors.push('Nhập số điện thoại hợp lệ, ví dụ 0901234567.');

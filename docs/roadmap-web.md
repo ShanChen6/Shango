@@ -70,7 +70,9 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
   GPS foreground; xem [WEB-007](web-007-driver-parity.md). Availability/offer/tracking vẫn khóa
   bởi WEB-002 + WEB-009.
 - WEB-008: responsive Admin.
-- WEB-009: API business flows + reconnect/snapshot.
+- WEB-009: **Lát 1 có code** — quote (giá thử nghiệm), đơn, điều phối offer lần lượt, state
+  machine, outbox, Socket.IO snapshot/reconnect và UI Customer/Driver/Admin; mặc định tắt. Xem
+  [WEB-009](web-009-orders-dispatch.md). Ledger, phí, bằng chứng giao vẫn chờ PO.
 - WEB-010: staging, security/performance/accessibility và pilot.
 - WEB-011: deprecate Expo, mobile packages/scripts sau migration verified.
 

@@ -165,3 +165,8 @@ input[type='file']:focus-visible + .file-button,
   color: white;
   background: var(--sg-danger);
 }
+.quote-price {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 900;
+}

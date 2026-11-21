@@ -2,7 +2,7 @@ import { createApi, createWebApi } from '@shango/api-client';
 import type {
   AuditFilters, AuditPage, Coordinate, DocumentKind, DocumentUpload, DriverDocuments,
   DriverProfile, DriverReviewItem, MapConfig, MapPlace, MapRoute, MapSearch, Page, PublicRole,
-  Session, User, UserProfile,
+  Order, OrderStatus, Session, User, UserProfile,
 } from '@shango/contracts';
 
 export function createAdminWebApi(baseUrl: string, onSessionInvalid: () => void) {
@@ -47,6 +47,9 @@ export function createAdminWebApi(baseUrl: string, onSessionInvalid: () => void)
       web.request<DriverProfile>(`/admin/drivers/${id}/reopen`, { method: 'POST', body: json({ expectedUpdatedAt, reason }), retryOnAuth: true }),
     reviewDriver: (id: string, status: 'approved' | 'rejected', expectedUpdatedAt: string, reason?: string) =>
       web.request<DriverProfile>(`/admin/drivers/${id}/review`, { method: 'PATCH', body: json({ status, expectedUpdatedAt, reason }), retryOnAuth: true }),
+    adminOrders: (status: OrderStatus | '' = '') => web.request<{ items: Order[] }>(`/admin/orders${status ? `?status=${status}` : ''}`),
+    cancelOrder: (id: string, expectedVersion: number, reason: string) =>
+      web.request<Order>(`/admin/orders/${id}/cancel`, { method: 'POST', body: json({ expectedVersion, reason }), retryOnAuth: true }),
   };
   return Object.assign(adapter as ReturnType<typeof createApi>, {
     bootstrap: async () => asLegacySession(await web.bootstrap()),

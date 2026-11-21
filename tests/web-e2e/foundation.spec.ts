@@ -206,7 +206,8 @@ test('Customer confirms a memory-only address draft with provider search', async
   await fillStop('Văn Miếu', 'Văn Miếu, Hà Nội');
   await expect(page.getByText('Draft hợp lệ')).toBeVisible();
   await expect(page.getByText('Routing chưa cấu hình')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Nhận báo giá và tạo đơn' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Nhận báo giá' })).toBeDisabled();
+  await expect(page.getByText(/chưa thể báo giá/i)).toBeVisible();
 });
 
 test('Customer can use and clear the manual address fallback', async ({ page }) => {

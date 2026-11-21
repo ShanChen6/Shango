@@ -5,12 +5,14 @@ import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { createWebApi, WebApiError } from '@shango/api-client';
 import { AppShell, Button, Card, InlineAlert, PageHeader, TextField } from '@shango/ui';
 import { DocumentsPage } from './documents-page';
-import { HomePage, OffersPage } from './home-page';
+import { CurrentOrderPage, HomePage, OffersPage } from './home-page';
+import { DriverWorkProvider, stopDriverRealtime } from './driver-work';
 import { ProfilePage } from './profile-page';
 import './style.css';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 function resetClientSession() {
+  stopDriverRealtime();
   queryClient.getMutationCache().clear();
   queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'session' });
   queryClient.setQueryData(['session'], null);
@@ -101,37 +103,41 @@ function NotFound() {
 
 function Shell({ onLogout }: { onLogout: () => void }) {
   return (
-    <AppShell
-      appName="Tài xế"
-      navigation={
-        <>
-          <NavLink to="/" end>
-            Trang chủ
-          </NavLink>
-          <NavLink to="/offers">Đề nghị</NavLink>
-          <NavLink to="/documents">Giấy tờ</NavLink>
-          <NavLink to="/profile">Hồ sơ</NavLink>
-          <Button
-            onClick={() =>
-              void api
-                .logout()
-                .catch(() => undefined)
-                .finally(onLogout)
-            }
-          >
-            Đăng xuất
-          </Button>
-        </>
-      }
-    >
-      <Routes>
-        <Route path="/" element={<HomePage api={api} />} />
-        <Route path="/offers" element={<OffersPage />} />
-        <Route path="/documents" element={<DocumentsPage api={api} />} />
-        <Route path="/profile" element={<ProfilePage api={api} />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AppShell>
+    <DriverWorkProvider api={api}>
+      <AppShell
+        appName="Tài xế"
+        navigation={
+          <>
+            <NavLink to="/" end>
+              Trang chủ
+            </NavLink>
+            <NavLink to="/offers">Đề nghị</NavLink>
+            <NavLink to="/order">Đơn hiện tại</NavLink>
+            <NavLink to="/documents">Giấy tờ</NavLink>
+            <NavLink to="/profile">Hồ sơ</NavLink>
+            <Button
+              onClick={() =>
+                void api
+                  .logout()
+                  .catch(() => undefined)
+                  .finally(onLogout)
+              }
+            >
+              Đăng xuất
+            </Button>
+          </>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<HomePage api={api} />} />
+          <Route path="/offers" element={<OffersPage api={api} />} />
+          <Route path="/order" element={<CurrentOrderPage api={api} />} />
+          <Route path="/documents" element={<DocumentsPage api={api} />} />
+          <Route path="/profile" element={<ProfilePage api={api} />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AppShell>
+    </DriverWorkProvider>
   );
 }
 

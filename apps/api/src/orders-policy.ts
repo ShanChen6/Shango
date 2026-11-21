@@ -90,7 +90,7 @@ const positionSchema = z
 export const stopSchema = z
   .object({
     position: positionSchema,
-    address: z.string().trim().min(3).max(300).regex(NO_CONTROL),
+    address: z.string().trim().min(3).max(500).regex(NO_CONTROL),
     detail: z.string().trim().max(200).regex(NO_CONTROL).default(''),
     contactName: z
       .string()

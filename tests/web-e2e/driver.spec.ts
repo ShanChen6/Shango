@@ -169,7 +169,7 @@ test('Driver rejects unsupported files before any upload', async ({ page }) => {
   expect(uploads).toBe(0);
 });
 
-test('Approved driver views private documents read-only and cannot go online yet', async ({
+test('Approved driver views private documents read-only and may go online', async ({
   page,
 }) => {
   await mockDriverSession(page);
@@ -198,8 +198,7 @@ test('Approved driver views private documents read-only and cannot go online yet
   await expect(image).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Trang chủ' }).click();
-  await expect(page.getByRole('button', { name: 'Bật sẵn sàng' })).toBeDisabled();
-  await expect(page.getByText(/WEB-009/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Bật sẵn sàng' })).toBeEnabled();
 });
 
 test('Rejected driver sees the reason and the profile form stays editable', async ({ page }) => {

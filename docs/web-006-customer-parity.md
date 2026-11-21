@@ -13,7 +13,7 @@
 - Mỗi điểm cần tọa độ Hà Nội, địa chỉ và contact hợp lệ, rồi xác nhận riêng.
 - Sửa pin/địa chỉ/contact làm mất xác nhận; draft chỉ nằm trong React memory.
 - Route chỉ gọi khi provider được cấu hình. Attribution luôn hiện; không vẽ tuyến giả.
-- Quote/tạo đơn/danh sách/tracking bị khóa và ghi rõ dependency WEB-009.
+- Quote/tạo đơn/danh sách/chi tiết trực tiếp đã nối API ở WEB-009 lát 1 (sau cờ `ORDERS_ENABLED`).
 
 ## Parity checklist
 
@@ -27,7 +27,8 @@
 - [x] Unit + Playwright evidence với API mock.
 - [ ] Contract E2E tự động với `/auth/web/*` server thật trong CI. Backend đã có
   ([web auth server](web-auth-server.md)) và đã smoke thủ công local; còn thiếu job CI có DB.
-- [ ] Quote/order/list/detail/tracking — phụ thuộc WEB-009.
+- [x] Quote/order/list/detail và trạng thái trực tiếp: WEB-009 lát 1
+  ([WEB-009](web-009-orders-dispatch.md)). Bản đồ vị trí tài xế trực tiếp chưa có.
 
 WEB-006 không phải lý do để xóa `apps/customer`, `packages/mobile-ui` hoặc Expo CI. Parity
 chỉ hoàn tất đầy đủ sau backend contract/staging evidence; deprecation vẫn thuộc WEB-011.

@@ -3,7 +3,8 @@
 - Ngày bắt đầu: 2026-11-21
 - Base: `develop` sau WEB-005 (PR #15) và WEB-006 (PR #16)
 - Trạng thái: **lát 1 — onboarding/KYC + kiểm tra GPS foreground đã có code; availability,
-  offer, thao tác đơn và tracking production vẫn bị khóa bởi WEB-002 + WEB-009**
+  offer và thao tác đơn đã có ở WEB-009 lát 1 (sau cờ `ORDERS_ENABLED`); tracking production vẫn chờ
+  evidence thiết bị WEB-002**
 - Expo Driver (`apps/driver`) và `packages/mobile-ui` vẫn được giữ đến WEB-011
 
 ## Phạm vi đã triển khai (`apps/driver-web`)
@@ -13,7 +14,7 @@
 | `/`          | Checklist hồ sơ (phương tiện → giấy tờ → xét duyệt), thẻ Nhận đơn luôn ngoại tuyến, kiểm tra vị trí foreground                             |
 | `/profile`   | Gửi/cập nhật hồ sơ phương tiện (`POST /drivers/me`), trạng thái + lý do từ chối, khóa khi đã duyệt; sửa tên hiển thị với `expectedVersion` |
 | `/documents` | Danh sách giấy tờ theo `requiredKinds` của server, chọn ảnh → xem trước → nộp; xem ảnh đã nộp của chính mình                               |
-| `/offers`    | Khóa rõ ràng, ghi phụ thuộc WEB-009; không hiển thị đề nghị/đơn giả                                                                        |
+| `/offers`    | Đề nghị hiện tại có đếm ngược, nhận/từ chối (WEB-009); `/order` cho đơn đang chạy                                                                        |
 
 ### Giấy tờ riêng tư
 
@@ -50,7 +51,8 @@
 - [x] Unit (`driver-policy.test.ts`) + Playwright (`tests/web-e2e/driver.spec.ts`) với API mock.
 - [ ] Contract E2E tự động với `/auth/web/*` server thật trong CI. Backend đã có
   ([web auth server](web-auth-server.md)) và đã smoke thủ công local; còn thiếu job CI có DB.
-- [ ] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao, map — phụ thuộc WEB-009.
+- [x] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao: WEB-009 lát 1
+  ([WEB-009](web-009-orders-dispatch.md)). Bản đồ dẫn đường cho tài xế chưa có.
 - [ ] Tracking production + reconnect/snapshot — phụ thuộc evidence thiết bị thật WEB-002 và PO.
 - [ ] QA Safari iOS/Chrome Android thật cho file picker và camera capture.
 

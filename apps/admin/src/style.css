@@ -276,11 +276,18 @@
     aside {
       width: 100%;
       padding: 20px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .brand {
+      width: 100%;
       font-size: 26px;
     }
-    .nav,
+    .nav {
+      width: auto;
+      margin: 0;
+    }
     .sidebar-note {
       display: none;
     }

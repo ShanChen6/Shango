@@ -10,6 +10,7 @@ import { MapPlayground } from './components/map-playground';
 import { AuditLogViewer } from './components/audit-log-viewer';
 import { DriverDocumentReview } from './components/driver-document-review';
 import { createAdminWebApi } from './lib/admin-web-api';
+import { OrdersBoard } from './components/orders-board';
 
 let currentSession: Session | null = null;
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -30,7 +31,7 @@ const api = webAuthEnabled
 const labels = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' };
 function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'drivers' | 'maps' | 'audit'>('drivers');
+  const [view, setView] = useState<'drivers' | 'orders' | 'maps' | 'audit'>('drivers');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [challenge, setChallenge] = useState(false);
@@ -110,6 +111,14 @@ function App() {
         <button
           type="button"
           className="nav"
+          aria-pressed={view === 'orders'}
+          onClick={() => setView('orders')}
+        >
+          Đơn hàng
+        </button>
+        <button
+          type="button"
+          className="nav"
           aria-pressed={view === 'maps'}
           onClick={() => setView('maps')}
         >
@@ -128,7 +137,7 @@ function App() {
         <div className="sidebar-note">
           Nền tảng phát triển
           <br />
-          Đơn hàng và tracking sẽ được bổ sung theo backlog.
+          Đơn hàng thử nghiệm, giá chưa phải bảng giá chính thức.
         </div>
       </aside>
       <main>
@@ -137,7 +146,9 @@ function App() {
             <p className="eyebrow">KHÔNG GIAN VẬN HÀNH</p>
             <h1>
               {session
-                ? view === 'maps'
+                ? view === 'orders'
+                  ? 'Đơn hàng'
+                  : view === 'maps'
                   ? 'Bản đồ Hà Nội'
                   : view === 'audit'
                     ? 'Nhật ký thao tác'
@@ -240,6 +251,8 @@ function App() {
               </button>
             )}
           </form>
+        ) : view === 'orders' ? (
+          <OrdersBoard api={api} />
         ) : view === 'maps' ? (
           <MapPlayground api={api} />
         ) : view === 'audit' && session.user.role === 'admin' ? (

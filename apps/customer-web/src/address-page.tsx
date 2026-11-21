@@ -4,6 +4,7 @@ import type { Coordinate, MapConfig, MapPlace, MapRoute, MapSearch } from '@shan
 import type { createWebApi } from '@shango/api-client';
 import { Badge, Button, Card, InlineAlert, PageHeader, TextField } from '@shango/ui';
 import { AddressMap } from './address-map';
+import { OrderComposer } from './order-composer';
 import {
   confirmStop,
   draftReady,
@@ -331,8 +332,12 @@ export function AddressPage({ api }: { api: WebApi }) {
               {Math.ceil(route.durationSeconds / 60)} phút · chưa xác minh xe máy
             </p>
           )}
-          <Button disabled>Nhận báo giá và tạo đơn</Button>
-          <p>Quote/order chỉ mở khi WEB-009 cung cấp API authoritative.</p>
+          <OrderComposer
+            api={api}
+            stops={stops}
+            routingConfigured={Boolean(config?.routingConfigured)}
+            online={online}
+          />
         </Card>
       )}
     </>

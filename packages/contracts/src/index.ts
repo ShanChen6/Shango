@@ -140,3 +140,107 @@ export interface MapRoute {
   profile: 'driving';
   motorcycleValidated: false;
 }
+
+// ----- WEB-009 orders, dispatch and realtime -----
+export type VehicleType = 'motorcycle' | 'car';
+export interface OrderStopInput {
+  position: Coordinate;
+  address: string;
+  detail?: string;
+  contactName: string;
+  contactPhone: string;
+  note?: string;
+}
+export interface OrderStop extends OrderStopInput {
+  detail: string;
+  note: string;
+}
+export interface QuoteRequest {
+  vehicleType: VehicleType;
+  pickup: OrderStopInput;
+  dropoff: OrderStopInput;
+}
+export interface Quote {
+  id: string;
+  vehicleType: VehicleType;
+  distanceMeters: number;
+  durationSeconds: number;
+  /** Integer VND. */
+  priceVnd: number;
+  tariffVersion: string;
+  /** Pilot tariffs are not PO-approved pricing. */
+  pricingApproved: false;
+  expiresAt: string;
+  routeGeometry: MapRoute['geometry'];
+}
+export interface OrderDriver {
+  id: string;
+  displayName: string | null;
+  vehiclePlate: string;
+  vehicleType: VehicleType;
+}
+export interface DriverLastLocation extends Coordinate {
+  accuracy: number | null;
+  recordedAt: string | null;
+  lastSeenAt: string;
+}
+export interface Order {
+  id: string;
+  status: OrderStatus;
+  version: number;
+  vehicleType: VehicleType;
+  stops: { pickup: OrderStop; dropoff: OrderStop };
+  distanceMeters: number;
+  durationSeconds: number;
+  priceVnd: number;
+  tariffVersion: string;
+  searchDeadline: string;
+  cancelReason: string | null;
+  customerId: string;
+  driverId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  driver: OrderDriver | null;
+  driverLocation: DriverLastLocation | null;
+}
+export interface DriverOffer {
+  id: string;
+  orderId: string;
+  expiresAt: string;
+  pickupDistanceMeters: number;
+  vehicleType: VehicleType;
+  distanceMeters: number;
+  durationSeconds: number;
+  priceVnd: number;
+  pickup: { address: string };
+  dropoff: { address: string };
+}
+export interface DriverPresence {
+  available: boolean;
+  lastSeenAt: string | null;
+  accuracy: number | null;
+  fresh: boolean;
+}
+export interface LocationFix extends Coordinate {
+  accuracy: number;
+  sequence: number;
+  recordedAt: string;
+}
+export type LocationResult = { accepted: true } | { accepted: false; reason: string };
+export interface OrderUpdatedEvent {
+  eventId: string;
+  orderId: string;
+  version: number;
+  status: OrderStatus;
+}
+export interface OfferUpdatedEvent {
+  eventId: string;
+  offerId: string;
+  orderId: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'withdrawn';
+}
+export interface OrderLocationEvent extends Coordinate {
+  orderId: string;
+  accuracy: number;
+  recordedAt: string;
+}

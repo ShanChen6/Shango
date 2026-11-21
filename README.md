@@ -14,7 +14,7 @@ Hệ thống giao nhận kết nối Khách hàng, Tài xế và Quản trị vi
 - React Admin: đăng nhập, lọc/phân trang hồ sơ, duyệt/từ chối có audit và chống review stale.
 - CI cho typecheck, test, DB migration, integration, build API/Admin và mobile JS bundles.
 
-Chưa có đặt đơn, Socket tracking, ví hoặc SMS thật. Giấy tờ tài xế được upload vào filesystem riêng tư cho môi trường phát triển, cần hoàn thiện vận hành lưu trữ trước production. API chủ động từ chối khởi động ở production với OTP development.
+Đặt đơn/điều phối/Socket.IO (WEB-009) có lát thử nghiệm sau cờ `ORDERS_ENABLED`, giá thử nghiệm chưa duyệt; xem [WEB-009](docs/web-009-orders-dispatch.md). Chưa có ví, ledger hoặc SMS thật. Giấy tờ tài xế được upload vào filesystem riêng tư cho môi trường phát triển, cần hoàn thiện vận hành lưu trữ trước production. API chủ động từ chối khởi động ở production với OTP development.
 
 Đợt tiếp theo bổ sung Map Gateway cho **Hà Nội**: search/reverse qua Nominatim và routing qua OSRM, kèm tab **Bản đồ Hà Nội** trong Admin. Provider/tile cần được cấu hình; chưa xác minh native map hoặc tuyến xe máy. Xem [thiết lập bản đồ Hà Nội](docs/maps-hanoi.md).
 
