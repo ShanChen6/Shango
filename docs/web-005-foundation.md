@@ -7,7 +7,7 @@
 ## Phạm vi
 
 - `apps/customer-web`: React/Vite shell Task-first, route `/`, `/addresses`, `/profile`.
-- `apps/driver-web`: React/Vite shell Task-first, route `/`, `/offers`, `/profile`.
+- `apps/driver-web`: React/Vite shell Task-first, route `/`, `/offers`, `/documents`, `/profile` (nội dung Driver thuộc [WEB-007](web-007-driver-parity.md)).
 - `apps/admin`: bổ sung Router/Query provider và web auth canary qua
   `VITE_WEB_AUTH_ENABLED=true`; false quay lại legacy transport. Timeline migration thuộc WEB-008.
 - `packages/ui`: semantic tokens và accessible primitives không chứa nghiệp vụ.

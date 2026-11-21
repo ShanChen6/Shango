@@ -61,11 +61,13 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-004: **Prototype sẵn sàng review** — UX flows, 3 responsive wireframe variants và
   web design-system proposal; xem [WEB-004 UX flows](web-004-ux-flows.md). Chưa chọn
   winning pattern hoặc đưa prototype vào production bundle.
-- WEB-005: **Đang triển khai** — web foundation song song + CI/E2E; xem
+- WEB-005: **Đã merge** (PR #15) — web foundation song song + CI/E2E; xem
   [WEB-005 foundation](web-005-foundation.md). Expo/mobile CI vẫn được giữ.
-- WEB-006: **Đang triển khai** — Customer profile, address/map fallback và draft validation;
-  quote/order vẫn khóa đến khi WEB-009 có API authoritative.
-- WEB-007: driver web parity.
+- WEB-006: **Đã merge** (PR #16) — Customer profile, address/map fallback và draft validation;
+  xem [WEB-006](web-006-customer-parity.md). Quote/order vẫn khóa đến khi WEB-009 có API authoritative.
+- WEB-007: **Đang triển khai (lát 1)** — Driver hồ sơ phương tiện, giấy tờ riêng tư và kiểm tra
+  GPS foreground; xem [WEB-007](web-007-driver-parity.md). Availability/offer/tracking vẫn khóa
+  bởi WEB-002 + WEB-009.
 - WEB-008: responsive Admin.
 - WEB-009: API business flows + reconnect/snapshot.
 - WEB-010: staging, security/performance/accessibility và pilot.

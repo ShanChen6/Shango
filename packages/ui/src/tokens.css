@@ -57,11 +57,14 @@ input {
   cursor: not-allowed;
 }
 .sg-field {
+  min-width: 0;
   display: grid;
   gap: var(--sg-space-2);
   font-weight: 700;
 }
 .sg-field input {
+  width: 100%;
+  min-width: 0;
   min-height: 44px;
   border: 1px solid #9cada5;
   border-radius: var(--sg-radius-2);
