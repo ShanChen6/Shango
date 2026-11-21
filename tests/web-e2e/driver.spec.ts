@@ -372,3 +372,25 @@ test.describe('WEB-002 gps lab', () => {
     expect(apiCalls).toEqual([]);
   });
 });
+
+test.describe('stationary driver GPS', () => {
+  test.use({
+    permissions: ['geolocation'],
+    geolocation: { longitude: 105.852, latitude: 21.028, accuracy: 14 },
+  });
+  test('restarts the watch to get fresh real fixes when the position does not change', async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await mockDriverSession(page);
+    await mockDriverData(page, { profile: makeProfile(), items: [] });
+    await page.goto(`${DRIVER_URL}/gps-lab`);
+    await page.getByRole('button', { name: 'Bắt đầu đo' }).click();
+    await expect(page.getByText(/· 1 fix ·/)).toBeVisible();
+    // No movement: emulated GPS stays silent until the watch is restarted after 12 s.
+    await page.clock.runFor(13_000);
+    await expect(page.getByText(/· 2 fix ·/)).toBeVisible();
+    await page.clock.runFor(13_000);
+    await expect(page.getByText(/· 3 fix ·/)).toBeVisible();
+  });
+});

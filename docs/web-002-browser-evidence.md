@@ -31,12 +31,13 @@ Công cụ đo GPS cho tester (WEB-002)**.
 Công cụ không gửi gì lên server và không bật trạng thái sẵn sàng. Cột "Reconnect" đo từ lúc có mạng
 lại đến khi socket kết nối lại (khi đó app tải lại snapshot).
 
-**Rủi ro cần đo, ghi nhận 2026-11-21:** app gọi `getCurrentPosition` mỗi 10 giây để tài xế đứng yên
-không bị coi là mất GPS. Với geolocation giả lập của Chromium, các lời gọi này **không trả kết quả
-khi tọa độ không đổi** (chỉ có `watchPosition` báo khi di chuyển). Trên thiết bị thật, nhà cung cấp
-vị trí của OS thường phát định kỳ, nhưng điều này **chưa được xác nhận**. Kịch bản
-"Foreground 15 phút" nên có một đoạn đứng yên; nếu "Interval max" vượt 30 giây khi đứng yên, tài
-xế rảnh sẽ rơi khỏi matching và cần đổi cách lấy vị trí trước pilot.
+**Rủi ro cần đo, ghi nhận 2026-11-21:** bản đầu gọi `getCurrentPosition` mỗi 10 giây để tài xế
+đứng yên không bị coi là mất GPS. Với geolocation giả lập của Chromium, các lời gọi này **treo khi
+tọa độ không đổi**. Đã đổi sang: quá 12 giây không có fix (kiểm tra mỗi 4 giây) thì **khởi động lại
+`watchPosition`** (`maximumAge: 0`), để nền tảng trả một fix thật mới; không bao giờ tự tạo vị trí.
+E2E "stationary driver GPS" kiểm chứng điều này trên Chromium, có mutation check. Trên thiết bị thật
+vẫn phải đo: kịch bản "Foreground 15 phút" nên có một đoạn đứng yên. Nếu "Interval max" vượt 30 giây
+khi đứng yên, hoặc pin tụt bất thường do restart, cần điều chỉnh trước pilot.
 
 ## Ma trận evidence
 
