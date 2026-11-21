@@ -69,7 +69,8 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-007: **Đang triển khai (lát 1)** — Driver hồ sơ phương tiện, giấy tờ riêng tư và kiểm tra
   GPS foreground; xem [WEB-007](web-007-driver-parity.md). Availability/offer/tracking vẫn khóa
   bởi WEB-002 + WEB-009.
-- WEB-008: responsive Admin.
+- WEB-008: **Lát 1 có code** — Admin dùng route/deep link, phân quyền theo vai trò, list-detail
+  responsive 320–1440px, xử lý conflict/offline; xem [WEB-008](web-008-admin-responsive.md).
 - WEB-009: **Lát 1 có code** — quote (giá thử nghiệm), đơn, điều phối offer lần lượt, state
   machine, outbox, Socket.IO snapshot/reconnect và UI Customer/Driver/Admin; mặc định tắt. Xem
   [WEB-009](web-009-orders-dispatch.md). Ledger, phí, bằng chứng giao vẫn chờ PO.

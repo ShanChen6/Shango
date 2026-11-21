@@ -286,7 +286,7 @@ test('Admin canary lists orders and cancels with a reason', async ({ page }) => 
     return route.fulfill({ json: item });
   });
   await page.goto(ADMIN);
-  await page.getByRole('button', { name: 'Đơn hàng' }).click();
+  await page.getByRole('link', { name: 'Đơn hàng' }).click();
   await expect(page.getByText('Bình · 29A-123.45')).toBeVisible();
   await page.getByRole('button', { name: 'Hủy đơn' }).click();
   await page.getByLabel('Lý do hủy').fill('Khách gọi hủy');

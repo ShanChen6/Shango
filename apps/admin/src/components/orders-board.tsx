@@ -37,7 +37,7 @@ function locationAge(order: Order, now: number) {
   return Math.max(0, Math.round((now - Date.parse(order.driverLocation.lastSeenAt)) / 1000));
 }
 
-export function OrdersBoard({ api, refreshMs = 5000 }: { api: Api; refreshMs?: number }) {
+export function OrdersBoard({ api, refreshMs = 5000, online = true }: { api: Api; refreshMs?: number; online?: boolean }) {
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [items, setItems] = useState<Order[] | null>(null);
   const [error, setError] = useState('');
@@ -142,7 +142,7 @@ export function OrdersBoard({ api, refreshMs = 5000 }: { api: Api; refreshMs?: n
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                disabled={busy || reason.trim().length < 3}
+                disabled={busy || !online || reason.trim().length < 3}
                 onClick={() => void confirmCancel()}
               >
                 Xác nhận hủy
