@@ -24,6 +24,7 @@ import {
   type ForegroundLocation,
   useForegroundLocation,
 } from './use-foreground-location';
+import { useOfferAlert } from './offer-alert';
 
 /** Send at most one fix per interval; the server orders fixes by device time. */
 const SEND_INTERVAL_MS = 5_000;
@@ -46,6 +47,8 @@ type Work = {
   availabilityError: string;
   availabilityBusy: boolean;
   wantsOnline: boolean;
+  offerSound: boolean;
+  setOfferSound: (value: boolean) => void;
 };
 
 const WorkContext = createContext<Work | null>(null);
@@ -221,6 +224,7 @@ export function DriverWorkProvider({ api, children }: { api: WebApi; children: R
     }
   }, [wantsOnline, location.freshness]);
 
+  const alert = useOfferAlert(offer.data?.id ?? null);
   const value: Work = {
     location,
     connection,
@@ -234,6 +238,8 @@ export function DriverWorkProvider({ api, children }: { api: WebApi; children: R
     availabilityError,
     availabilityBusy: availability.isPending || wantsOnline,
     wantsOnline,
+    offerSound: alert.soundOn,
+    setOfferSound: alert.toggleSound,
   };
   return <WorkContext.Provider value={value}>{children}</WorkContext.Provider>;
 }

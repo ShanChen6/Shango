@@ -39,6 +39,13 @@
 - Nút **Bật sẵn sàng** luôn disabled: server hiện chỉ cho phép offline (SG-018) và chưa có
   presence/dispatch.
 
+## Bổ sung 2026-11-21
+
+- Cảnh báo đề nghị mới khi trang đang mở: tiêu đề tab nhấp nháy, rung (nếu hỗ trợ), tiếng bíp
+  WebAudio sau lần chạm đầu (bật/tắt, nhớ theo thiết bị). Không phải push notification; trang bị
+  treo ở nền thì không có cảnh báo (giới hạn đã nêu ở WEB-002).
+- GPS khi đứng yên: khởi động lại `watchPosition` sau 12 giây không có fix (xem WEB-002).
+
 ## Parity checklist
 
 - [x] Login/bootstrap/logout và role gate: WEB-005.

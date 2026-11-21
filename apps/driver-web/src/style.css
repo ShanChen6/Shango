@@ -191,3 +191,15 @@ input[type='file']:focus-visible + .file-button,
   border: 1px solid #9cada5;
   border-radius: var(--sg-radius-2);
 }
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin: 0.5rem 0;
+  font-weight: 600;
+}
+.toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+}

@@ -394,3 +394,65 @@ test.describe('stationary driver GPS', () => {
     await expect(page.getByText(/· 3 fix ·/)).toBeVisible();
   });
 });
+
+test('Driver is alerted about a new offer and the alert clears when it is gone', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __vibrations: unknown[] }).__vibrations = [];
+    Object.defineProperty(navigator, 'vibrate', {
+      configurable: true,
+      value: (pattern: unknown) => {
+        (window as unknown as { __vibrations: unknown[] }).__vibrations.push(pattern);
+        return true;
+      },
+    });
+  });
+  await mockDriverSession(page);
+  await mockDriverData(page, { profile: makeProfile({ status: 'approved' }), items: [] });
+  let offer: Record<string, unknown> | null = null;
+  await page.route('**/api/v1/drivers/me/offers/current', (route) =>
+    route.fulfill({ json: { offer } }),
+  );
+  await page.route('**/api/v1/drivers/me/orders/current', (route) =>
+    route.fulfill({ json: { order: null } }),
+  );
+  await page.route('**/api/v1/drivers/me/presence', (route) =>
+    route.fulfill({
+      json: { available: true, lastSeenAt: new Date().toISOString(), accuracy: 10, fresh: true },
+    }),
+  );
+  await page.goto(DRIVER_URL);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  const original = await page.title();
+  expect(original).not.toContain('Đề nghị mới');
+  await page.getByLabel(/Âm báo khi có đề nghị/).uncheck();
+
+  offer = {
+    id: '6cdf06f0-e000-4111-8111-00000000f001',
+    orderId: '6cdf06f0-e000-4111-8111-00000000f002',
+    expiresAt: new Date(Date.now() + 20_000).toISOString(),
+    pickupDistanceMeters: 300,
+    vehicleType: 'motorcycle',
+    distanceMeters: 3200,
+    durationSeconds: 600,
+    priceVnd: 31000,
+    pickup: { address: 'Hồ Hoàn Kiếm' },
+    dropoff: { address: 'Văn Miếu' },
+  };
+  await page.getByRole('link', { name: 'Đề nghị', exact: true }).click();
+  await expect(page).toHaveTitle(/Đề nghị mới/);
+  expect(
+    await page.evaluate(() => (window as unknown as { __vibrations: unknown[] }).__vibrations),
+  ).toEqual([[200, 100, 200]]);
+
+  offer = null;
+  await page.getByRole('link', { name: 'Trang chủ', exact: true }).click();
+  await page.getByRole('link', { name: 'Đề nghị', exact: true }).click();
+  await expect(page.getByText(/Chưa có đề nghị/)).toBeVisible();
+  await expect(page).toHaveTitle(original);
+  await page.reload();
+  await expect(page.getByLabel(/Âm báo khi có đề nghị/)).toHaveCount(0);
+  await page.getByRole('link', { name: 'Trang chủ', exact: true }).click();
+  await expect(page.getByLabel(/Âm báo khi có đề nghị/)).not.toBeChecked();
+});

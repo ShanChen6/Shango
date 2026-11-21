@@ -147,6 +147,14 @@ function Availability({ approved }: { approved: boolean }) {
           {work.wantsOnline ? 'Đang lấy vị trí…' : 'Bật sẵn sàng'}
         </Button>
       )}
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={work.offerSound}
+          onChange={(event) => work.setOfferSound(event.target.checked)}
+        />
+        Âm báo khi có đề nghị (cần chạm vào trang một lần để bật âm thanh)
+      </label>
       <small id="availability-gate" className="hint">
         Bật sẵn sàng sẽ gửi vị trí khi trang mở. Khóa màn hình hoặc chuyển tab có thể làm GPS dừng;
         đơn đã nhận không bị hủy vì mất GPS.
