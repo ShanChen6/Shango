@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Order } from '@shango/contracts';
+import type { MapConfig, Order } from '@shango/contracts';
 import { WebApiError, type createWebApi } from '@shango/api-client';
 import { Badge, Button, Card, InlineAlert, PageHeader } from '@shango/ui';
 import { useLiveOrder } from './live-order';
+import { OrderMap } from './order-map';
 import {
   ACTIVE_STATUSES,
   ageSeconds,
@@ -79,6 +80,11 @@ export function OrderDetailPage({ api }: { api: WebApi }) {
   const { id = '' } = useParams();
   const client = useQueryClient();
   const order = useLiveOrder(api, id);
+  const mapConfig = useQuery({
+    queryKey: ['map-config'],
+    queryFn: () => api.request<MapConfig>('/maps/config'),
+    staleTime: 10 * 60_000,
+  });
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -189,32 +195,53 @@ export function OrderDetailPage({ api }: { api: WebApi }) {
             </p>
           </Card>
         </div>
-        <Card>
-          <h2>Tài xế</h2>
-          {!data.driver && <p>Chưa có tài xế nhận đơn.</p>}
-          {data.driver && (
-            <>
-              <p>
-                <strong>{data.driver.displayName ?? 'Tài xế ShanGo'}</strong> ·{' '}
-                {vehicleLabels[data.driver.vehicleType]} {data.driver.vehiclePlate}
-              </p>
-              {active && data.driverLocation && locationAge !== null && (
-                <p aria-live="polite">
-                  Vị trí cuối cập nhật {locationAge} giây trước
-                  {data.driverLocation.accuracy !== null &&
-                    ` · sai số ~${data.driverLocation.accuracy} m`}
+        <div className="stack">
+          <Card>
+            <h2>Tài xế</h2>
+            {!data.driver && <p>Chưa có tài xế nhận đơn.</p>}
+            {data.driver && (
+              <>
+                <p>
+                  <strong>{data.driver.displayName ?? 'Tài xế ShanGo'}</strong> ·{' '}
+                  {vehicleLabels[data.driver.vehicleType]} {data.driver.vehiclePlate}
                 </p>
-              )}
-              {active && locationAge !== null && locationAge >= 60 && (
-                <InlineAlert tone="warning">
-                  Chưa nhận được vị trí mới của tài xế hơn 1 phút. Đơn vẫn được giữ; trình duyệt của
-                  tài xế có thể đang ở nền.
-                </InlineAlert>
-              )}
-              {active && !data.driverLocation && <p>Chưa có vị trí của tài xế.</p>}
-            </>
+                {active && data.driverLocation && locationAge !== null && (
+                  <p aria-live="polite">
+                    Vị trí cuối cập nhật {locationAge} giây trước
+                    {data.driverLocation.accuracy !== null &&
+                      ` · sai số ~${data.driverLocation.accuracy} m`}
+                  </p>
+                )}
+                {active && locationAge !== null && locationAge >= 60 && (
+                  <InlineAlert tone="warning">
+                    Chưa nhận được vị trí mới của tài xế hơn 1 phút. Đơn vẫn được giữ; trình duyệt
+                    của tài xế có thể đang ở nền.
+                  </InlineAlert>
+                )}
+                {active && !data.driverLocation && <p>Chưa có vị trí của tài xế.</p>}
+              </>
+            )}
+          </Card>
+          {mapConfig.data && (
+            <Card>
+              <h2>Bản đồ</h2>
+              <OrderMap
+                config={mapConfig.data}
+                pickup={data.stops.pickup.position}
+                dropoff={data.stops.dropoff.position}
+                driver={
+                  active && data.driverLocation
+                    ? {
+                        longitude: data.driverLocation.longitude,
+                        latitude: data.driverLocation.latitude,
+                        accuracy: data.driverLocation.accuracy,
+                      }
+                    : null
+                }
+              />
+            </Card>
           )}
-        </Card>
+        </div>
       </div>
     </>
   );

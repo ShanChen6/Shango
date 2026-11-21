@@ -78,6 +78,24 @@ trong layer nào.
   - `respond` của Caddy bị `handle` vượt thứ tự (metrics và chặn IP không có tác dụng), nay dùng `route`;
   - `CORS_ORIGINS` thiếu cổng khi HTTPS không chạy trên 443, nay có `ORIGIN_PORT_SUFFIX`.
 
+## Giám sát (profile `monitoring`, bổ sung 2026-11-21)
+
+```bash
+IMAGE_TAG=<sha> docker compose -f deploy/compose.staging.yaml --env-file deploy/staging.env --profile monitoring up -d
+ssh -L 9090:127.0.0.1:9090 <vps>   # mở http://127.0.0.1:9090
+```
+
+- Prometheus `v3.5.0` scrape `api:3000/api/v1/health/metrics` trong mạng nội bộ. Token đi qua
+  compose secret (`/run/secrets/metrics_token`), không nằm trong file cấu hình. UI chỉ bind
+  `127.0.0.1`. Dữ liệu giữ 15 ngày.
+- Luật `deploy/prometheus/alerts.yml`: API không phản hồi, outbox kẹt > 30 giây, 5xx > 1%,
+  p95 > 1 giây, có đơn đang tìm nhưng 0 tài xế sẵn sàng. Có `promtool test rules`
+  (`alerts.test.yml`) và mutation check.
+- Đã chạy thử local: target `up`, 5 luật được nạp. Tắt API thì `ShangoApiDown` chuyển sang firing
+  sau khoảng 150 giây.
+- **Chưa có Alertmanager/kênh nhận cảnh báo**: cần chọn email, Telegram hay Slack và người trực.
+  Hiện cảnh báo chỉ xem được trên UI Prometheus.
+
 ## CI mới
 
 - `web-contract-e2e`: Postgres/Redis service, migrate, build, Playwright với API thật.

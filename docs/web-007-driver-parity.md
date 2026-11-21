@@ -52,7 +52,8 @@
 - [x] Contract E2E tự động với `/auth/web/*` server thật trong CI: job `web-contract-e2e`
   (`tests/web-e2e-real`), xanh tại [run #33](https://github.com/ShanChen6/Shango/actions/runs/44900111922).
 - [x] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao: WEB-009 lát 1
-  ([WEB-009](web-009-orders-dispatch.md)). Bản đồ dẫn đường cho tài xế chưa có.
+  ([WEB-009](web-009-orders-dispatch.md)). Dẫn đường bằng link "Mở chỉ đường (Google Maps)", chế độ
+  `two-wheeler` cho xe máy; tọa độ điểm đến chỉ được gửi cho Google khi tài xế bấm link.
 - [ ] Tracking production + reconnect/snapshot — phụ thuộc evidence thiết bị thật WEB-002 và PO.
 - [ ] QA Safari iOS/Chrome Android thật cho file picker và camera capture.
 

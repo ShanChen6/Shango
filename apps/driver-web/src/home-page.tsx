@@ -5,7 +5,7 @@ import type { Order, OrderStatus } from '@shango/contracts';
 import { WebApiError } from '@shango/api-client';
 import { Badge, Button, Card, InlineAlert, PageHeader } from '@shango/ui';
 import { useDriverDocuments, useDriverProfile, type WebApi } from './driver-data';
-import { formatAge, freshnessLabels, onboardingSteps } from './driver-policy';
+import { directionsUrl, formatAge, freshnessLabels, onboardingSteps } from './driver-policy';
 import { useWork, workKeys } from './driver-work';
 
 const stepLinks = { vehicle: '/profile', documents: '/documents', review: '/profile' } as const;
@@ -388,6 +388,14 @@ export function CurrentOrderPage({ api }: { api: WebApi }) {
                 {stop.contactName} · <a href={`tel:${stop.contactPhone}`}>{stop.contactPhone}</a>
               </p>
               {stop.note && <p className="hint">Ghi chú: {stop.note}</p>}
+              <a
+                className="action-link secondary-link"
+                href={directionsUrl(stop.position, order.vehicleType)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Mở chỉ đường (Google Maps)
+              </a>
             </div>
           ))}
           {action && (

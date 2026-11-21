@@ -170,3 +170,8 @@ input[type='file']:focus-visible + .file-button,
   font-size: 2rem;
   font-weight: 900;
 }
+.action-link.secondary-link {
+  color: var(--sg-brand);
+  background: white;
+  border: 2px solid var(--sg-brand);
+}
