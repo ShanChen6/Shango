@@ -11,6 +11,32 @@ const PNG = Buffer.from(
 const KINDS = ['identity_front', 'identity_back', 'driver_license', 'vehicle_registration'];
 const LABELS = ['CCCD mặt trước', 'CCCD mặt sau', 'Giấy phép lái xe', 'Đăng ký xe'];
 
+const AREA = {
+  id: '6cdf06f0-e000-4111-8111-0000000a0001',
+  code: 'hanoi-pilot',
+  name: 'Hà Nội (khung tạm, chờ PO duyệt)',
+  active: true,
+  version: 1,
+  geometry: {
+    type: 'MultiPolygon',
+    coordinates: [
+      [
+        [
+          [105.3, 20.55],
+          [106.05, 20.55],
+          [106.05, 21.4],
+          [105.3, 21.4],
+          [105.3, 20.55],
+        ],
+      ],
+    ],
+  },
+  areaKm2: 7400,
+  vertices: 5,
+  updatedAt: '2026-11-21T10:00:00Z',
+  updatedBy: null,
+};
+
 function profile(updatedAt: string, status = 'pending') {
   return {
     userId: DRIVER_ID,
@@ -37,6 +63,26 @@ async function staff(page: Page, role: string) {
   );
   await page.route('**/api/v1/auth/web/logout', (route) => route.fulfill({ status: 204 }));
   await page.route('**/api/v1/admin/orders**', (route) => route.fulfill({ json: { items: [] } }));
+  await page.route('**/api/v1/admin/service-areas', (route) =>
+    route.fulfill({ json: { items: [AREA] } }),
+  );
+  await page.route('**/api/v1/admin/service-areas/*/versions', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            version: 1,
+            name: AREA.name,
+            active: true,
+            vertices: 5,
+            areaKm2: 7400,
+            changedAt: AREA.updatedAt,
+            changedBy: null,
+          },
+        ],
+      },
+    }),
+  );
   await page.route('**/api/v1/maps/config', (route) =>
     route.fulfill({
       json: {
@@ -234,7 +280,14 @@ test('Admin screens fit 320–1440px without horizontal overflow', async ({ page
   await reviewFixture(page);
   for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ['/drivers', `/drivers/${DRIVER_ID}`, '/orders', '/maps', '/audit']) {
+    for (const path of [
+      '/drivers',
+      `/drivers/${DRIVER_ID}`,
+      '/orders',
+      '/service-areas',
+      '/maps',
+      '/audit',
+    ]) {
       await page.goto(`${ADMIN}${path}`);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       const overflow = await page.evaluate(() =>
@@ -273,4 +326,45 @@ test('Keyboard users can skip navigation to the main content', async ({ page }) 
   await expect(page.getByRole('link', { name: 'Bỏ qua điều hướng' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();
+});
+
+test('Admin edits the service area polygon; dispatchers only view it', async ({ page }) => {
+  await staff(page, 'admin');
+  let saved: unknown = null;
+  await page.route(`**/api/v1/admin/service-areas/${AREA.id}`, async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    expect(route.request().headers().authorization).toBe('Bearer access-staff');
+    saved = route.request().postDataJSON();
+    await route.fulfill({ json: { ...AREA, version: 2 } });
+  });
+  await page.goto(`${ADMIN}/service-areas`);
+  await expect(page.getByRole('heading', { name: 'Vùng phục vụ', level: 1 })).toBeVisible();
+  await expect(page.getByText('hanoi-pilot')).toBeVisible();
+  const save = page.getByRole('button', { name: 'Lưu vùng' });
+  await expect(save).toBeDisabled();
+  const polygon = {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [105.8, 21],
+        [105.9, 21],
+        [105.9, 21.06],
+        [105.8, 21.06],
+        [105.8, 21],
+      ],
+    ],
+  };
+  await page.getByRole('textbox', { name: 'GeoJSON' }).fill(JSON.stringify(polygon));
+  await expect(page.getByText('Có thay đổi chưa lưu.')).toBeVisible();
+  await save.click();
+  await expect(page.getByText(/Đã lưu phiên bản 2/)).toBeVisible();
+  expect(saved).toEqual({ name: AREA.name, active: true, geometry: polygon, expectedVersion: 1 });
+});
+
+test('Dispatcher sees service areas read-only', async ({ page }) => {
+  await staff(page, 'dispatcher');
+  await page.goto(`${ADMIN}/service-areas`);
+  await expect(page.getByText('hanoi-pilot')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Lưu vùng' })).toHaveCount(0);
+  await expect(page.getByText('Chỉ Quản trị viên được sửa.', { exact: false })).toBeVisible();
 });

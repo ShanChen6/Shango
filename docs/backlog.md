@@ -24,7 +24,8 @@ Các trạng thái bên dưới vẫn là bằng chứng lịch sử, không ph�
 | SG-012     | Chờ nghiệm thu                         | Chạy integration CI và QA thiết bị trước khi đóng gate                                                    |
 | SG-013     | Có code, chưa nghiệm thu provider thật | Search/reverse/routing adapter, cache/rate limit, shared client và Admin map lab; xem maps-hanoi.md       |
 | SG-014     | Có code/test logic, chờ native QA      | App Khách chọn điểm/tọa độ, MapLibre, liên hệ/ghi chú, xác nhận và tóm tắt; xem customer-addresses.md     |
-| SG-015–072 | Chưa làm                               | Tiếp theo: polygon PostGIS vùng phục vụ; chưa báo giá/đặt đơn                                             |
+| SG-015     | Có code, chờ PO duyệt vùng             | Polygon PostGIS, Admin sửa có phiên bản/audit; xem sg-015-service-areas.md                                |
+| SG-016–072 | Chưa làm                               | Báo giá/đơn/dispatch web đã làm ở WEB-009; phần còn lại theo roadmap web                                  |
 
 ## Thứ tự tiếp theo
 

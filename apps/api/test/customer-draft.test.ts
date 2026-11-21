@@ -27,12 +27,10 @@ function setup() {
   const api = {
     mapConfig: vi.fn().mockResolvedValue(config),
     searchPlaces: vi.fn().mockResolvedValue({ items: [place] }),
-    reversePlace: vi
-      .fn()
-      .mockResolvedValue({
-        item: { ...place, position: { longitude: 105.85, latitude: 21.03 } },
-        requestedPosition: point,
-      }),
+    reversePlace: vi.fn().mockResolvedValue({
+      item: { ...place, position: { longitude: 105.85, latitude: 21.03 } },
+      requestedPosition: point,
+    }),
   };
   return { api, draft: createDeliveryDraft(api) };
 }

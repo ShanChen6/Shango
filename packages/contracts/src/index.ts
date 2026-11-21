@@ -253,3 +253,35 @@ export interface OrderEvent {
   /** Only returned to admin/dispatcher. */
   actorId?: string | null;
 }
+
+/** SG-015: GeoJSON coordinates are [longitude, latitude]. */
+export type AreaGeometry =
+  | { type: 'Polygon'; coordinates: number[][][] }
+  | { type: 'MultiPolygon'; coordinates: number[][][][] };
+export interface ServiceArea {
+  id: string;
+  code: string;
+  name: string;
+  active: boolean;
+  version: number;
+  geometry: AreaGeometry;
+  areaKm2: number;
+  vertices: number;
+  updatedAt: string;
+  updatedBy: string | null;
+}
+export interface ServiceAreaVersion {
+  version: number;
+  name: string;
+  active: boolean;
+  vertices: number;
+  areaKm2: number;
+  changedAt: string;
+  changedBy: string | null;
+}
+export interface ServiceAreaUpdate {
+  name: string;
+  active: boolean;
+  geometry: AreaGeometry;
+  expectedVersion: number;
+}

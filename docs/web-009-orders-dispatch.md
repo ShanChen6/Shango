@@ -69,18 +69,18 @@ Hết DISPATCH_SEARCH_SECONDS không ai nhận → EXPIRED
 
 ## API
 
-| Endpoint                                                     | Vai trò                        | Ghi chú                                                      |
-| ------------------------------------------------------------ | ------------------------------ | ------------------------------------------------------------ |
-| `POST /orders/quote`                                         | customer                       | 422 ngoài vùng Hà Nội; 503 khi tắt, thiếu bảng giá hoặc OSRM |
-| `POST /orders` `{quoteId}`                                   | customer                       | 201; gọi lại cùng quote trả cùng đơn; 409 quote hết hạn      |
-| `GET /orders`, `GET /orders/:id`                             | customer/driver được gán/staff | 404 nếu không có quyền                                       |
-| `GET /orders/:id/events`                                     | customer/driver được gán/staff | Mốc trạng thái; `actorId` chỉ trả cho staff                  |
-| `POST /orders/:id/cancel` `{expectedVersion}`                | customer                       | Chỉ khi `SEARCHING`                                          |
-| `POST /drivers/me/location`                                  | driver                         | Cũng có qua socket `driver:location`                         |
-| `GET /drivers/me/presence`, `PATCH /drivers/me/availability` | driver                         | Bật cần GPS < 30 giây                                        |
-| `GET /drivers/me/offers/current`, `POST …/offers/:id/accept  | decline`                       | driver                                                       |     |
-| `GET /drivers/me/orders/current`, `POST …/orders/:id/status` | driver                         | Mỗi lần một bước                                             |
-| `GET /admin/orders?status=`, `POST /admin/orders/:id/cancel` | admin/dispatcher               | Hủy cần lý do, có audit                                      |
+| Endpoint                                                     | Vai trò                        | Ghi chú                                                                |
+| ------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------- |
+| `POST /orders/quote`                                         | customer                       | 422 ngoài vùng phục vụ (SG-015); 503 khi tắt, thiếu bảng giá hoặc OSRM |
+| `POST /orders` `{quoteId}`                                   | customer                       | 201; gọi lại cùng quote trả cùng đơn; 409 quote hết hạn                |
+| `GET /orders`, `GET /orders/:id`                             | customer/driver được gán/staff | 404 nếu không có quyền                                                 |
+| `GET /orders/:id/events`                                     | customer/driver được gán/staff | Mốc trạng thái; `actorId` chỉ trả cho staff                            |
+| `POST /orders/:id/cancel` `{expectedVersion}`                | customer                       | Chỉ khi `SEARCHING`                                                    |
+| `POST /drivers/me/location`                                  | driver                         | Cũng có qua socket `driver:location`                                   |
+| `GET /drivers/me/presence`, `PATCH /drivers/me/availability` | driver                         | Bật cần GPS < 30 giây                                                  |
+| `GET /drivers/me/offers/current`, `POST …/offers/:id/accept  | decline`                       | driver                                                                 |     |
+| `GET /drivers/me/orders/current`, `POST …/orders/:id/status` | driver                         | Mỗi lần một bước                                                       |
+| `GET /admin/orders?status=`, `POST /admin/orders/:id/cancel` | admin/dispatcher               | Hủy cần lý do, có audit                                                |
 
 ## Frontend
 
@@ -126,7 +126,7 @@ Kết hợp với cookie auth ([web auth server](web-auth-server.md)). Vite prox
 - Bảng giá chính thức, phụ phí, phí hủy, COD hàng hóa, ledger/hoa hồng, đối soát.
 - Bằng chứng giao hàng (ảnh/OTP người nhận) và workflow giao thất bại/trả hàng sau `PICKED_UP`.
 - Retention và lịch sử GPS; bản đồ trực tiếp cho khách (hiện chỉ hiện tuổi/sai số vị trí).
-- Polygon vùng phục vụ (SG-015) thay cho khung chữ nhật Hà Nội.
+- Ranh giới vùng phục vụ thật: cơ chế polygon đã có ([SG-015](sg-015-service-areas.md)), chờ PO duyệt hình dạng.
 - Evidence thiết bị thật WEB-002 trước khi bật cho tài xế thật. Ngưỡng 30/60 giây vẫn là giả thuyết.
 - Alert cho dispatch và outbox (metrics, Redis adapter và dọn outbox đã có ở WEB-010). OpenAPI cho các
   endpoint đơn hàng đã có trong `docs/openapi.yaml`.

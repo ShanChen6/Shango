@@ -16,7 +16,6 @@ import {
   Query,
   Req,
   ServiceUnavailableException,
-  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
@@ -26,7 +25,8 @@ import { loadConfig } from './config';
 import { AccessGuard, type AuthRequest, Roles } from './security';
 import { parse } from './validation';
 import { AuthService } from './auth';
-import { insideHanoi, MapsService } from './maps';
+import { MapsService } from './maps';
+import { ServiceAreaService } from './service-areas';
 import {
   ACTIVE_DRIVER_STATUSES,
   customerMayCancel,
@@ -478,13 +478,13 @@ export class QuoteService {
     @Inject(MapsService) private readonly maps: MapsService,
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(OrdersService) private readonly orders: OrdersService,
+    @Inject(ServiceAreaService) private readonly areas: ServiceAreaService,
   ) {}
 
   async quote(customerId: string, body: unknown) {
     ordersEnabled();
     const input = parse(quoteRequestSchema, body);
-    if (!insideHanoi(input.pickup.position) || !insideHanoi(input.dropoff.position))
-      throw new UnprocessableEntityException('Điểm lấy/giao phải nằm trong vùng thử nghiệm Hà Nội');
+    await this.areas.assertServed(input.pickup.position, input.dropoff.position);
     const tariff = tariffFor(loadConfig(), input.vehicleType);
     if (!tariff)
       throw new ServiceUnavailableException('Bảng giá chưa được cấu hình cho loại xe này');
@@ -558,6 +558,8 @@ export class QuoteService {
       if (open.rows[0].n >= MAX_OPEN_ORDERS_PER_CUSTOMER)
         throw new ConflictException('Bạn đang có quá nhiều đơn chưa hoàn tất');
       const { pickup, dropoff } = quote.stops;
+      // The area may have shrunk since the quote was issued.
+      await this.areas.assertServed(pickup.position, dropoff.position, client);
       const created = (
         await client.query<{ id: string }>(
           `INSERT INTO orders (quote_id, customer_id, status, vehicle_type, pickup_position, dropoff_position,

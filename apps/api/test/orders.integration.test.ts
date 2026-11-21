@@ -686,4 +686,157 @@ describe('orders, dispatch and realtime (WEB-009)', () => {
       process.env.ORDERS_ENABLED = 'true';
     }
   });
+
+  it('limits quotes and orders to active service area polygons (SG-015)', async () => {
+    const box = (west: number, south: number, east: number, north: number) => ({
+      type: 'Polygon' as const,
+      coordinates: [
+        [
+          [west, south],
+          [east, south],
+          [east, north],
+          [west, north],
+          [west, south],
+        ],
+      ],
+    });
+    const original = (
+      await database.pool.query<{
+        id: string;
+        version: number;
+        name: string;
+        area: string;
+        active: boolean;
+        updated_by: string | null;
+        updated_at: string;
+      }>(
+        `SELECT id, version, name, area, active, updated_by, updated_at FROM service_areas WHERE code = 'hanoi-pilot'`,
+      )
+    ).rows[0]!;
+    const staff = await signIn('customer');
+    await database.pool.query(`UPDATE users SET role = 'dispatcher' WHERE id = $1`, [staff.id]);
+    const admin = await signIn('customer');
+    await database.pool.query(`UPDATE users SET role = 'admin' WHERE id = $1`, [admin.id]);
+    const customer = await signIn('customer');
+    const quote = (pickup: { longitude: number; latitude: number }, dropoff = VAN_MIEU) =>
+      call(
+        '/orders/quote',
+        'POST',
+        {
+          vehicleType: 'motorcycle',
+          pickup: stop(pickup, 'Điểm A'),
+          dropoff: stop(dropoff, 'Điểm B'),
+        },
+        customer.token,
+      );
+    const save = (body: Record<string, unknown>, token = admin.token) =>
+      call(`/admin/service-areas/${original.id}`, 'PUT', body, token);
+    try {
+      const listed = await call('/admin/service-areas', 'GET', undefined, staff.token);
+      expect(listed.status).toBe(200);
+      const area = listed.data.items.find((item: { id: string }) => item.id === original.id);
+      expect(area).toMatchObject({ code: 'hanoi-pilot', active: true, version: original.version });
+      expect(area.geometry.type).toBe('MultiPolygon');
+      expect(area.areaKm2).toBeGreaterThan(1000);
+      expect((await call('/admin/service-areas', 'GET', undefined, customer.token)).status).toBe(
+        403,
+      );
+
+      const small = {
+        name: 'Nội thành thử nghiệm',
+        active: true,
+        geometry: box(105.8, 21.0, 105.9, 21.06),
+        expectedVersion: original.version,
+      };
+      expect((await save(small, staff.token)).status).toBe(403);
+      expect((await save({ ...small, expectedVersion: original.version + 9 })).status).toBe(409);
+      const bowtie = {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [105.8, 21.0],
+            [105.9, 21.06],
+            [105.9, 21.0],
+            [105.8, 21.06],
+            [105.8, 21.0],
+          ],
+        ],
+      };
+      const invalid = await save({ ...small, geometry: bowtie });
+      expect(invalid.status).toBe(422);
+      expect(invalid.data.message).toMatch(/Polygon không hợp lệ: Self-intersection/);
+      expect((await save({ ...small, geometry: box(106.5, 10.7, 106.8, 10.9) })).status).toBe(400);
+      const open = { type: 'Polygon', coordinates: [small.geometry.coordinates[0]!.slice(0, 4)] };
+      expect((await save({ ...small, geometry: open })).status).toBe(400);
+      expect((await save({ ...small, active: false })).data.message).toBe(
+        'Phải còn ít nhất một vùng phục vụ đang bật.',
+      );
+
+      const saved = await save(small);
+      expect(saved.status).toBe(200);
+      expect(saved.data).toMatchObject({
+        name: 'Nội thành thử nghiệm',
+        version: original.version + 1,
+        vertices: 5,
+        updatedBy: admin.id,
+      });
+
+      // Inside the discovery rectangle but outside the polygon.
+      const outsidePickup = await quote({ longitude: 105.5, latitude: 21.2 });
+      expect(outsidePickup.status).toBe(422);
+      expect(outsidePickup.data.message).toBe('Điểm lấy hàng nằm ngoài vùng phục vụ');
+      const outsideDropoff = await quote(HOAN_KIEM, { longitude: 105.5, latitude: 21.2 });
+      expect(outsideDropoff.data.message).toBe('Điểm giao hàng nằm ngoài vùng phục vụ');
+      const inside = await quote(HOAN_KIEM);
+      expect(inside.status).toBe(200);
+
+      // Shrinking the area after a quote blocks creating the order from that quote.
+      const shrunk = await save({
+        ...small,
+        geometry: box(105.845, 21.0, 105.9, 21.06),
+        expectedVersion: original.version + 1,
+      });
+      expect(shrunk.status).toBe(200);
+      const blocked = await call('/orders', 'POST', { quoteId: inside.data.id }, customer.token);
+      expect(blocked.status).toBe(422);
+      expect(blocked.data.message).toBe('Điểm giao hàng nằm ngoài vùng phục vụ');
+
+      const versions = await call(
+        `/admin/service-areas/${original.id}/versions`,
+        'GET',
+        undefined,
+        staff.token,
+      );
+      expect(versions.data.items.slice(0, 3).map((v: { version: number }) => v.version)).toEqual([
+        original.version + 2,
+        original.version + 1,
+        original.version,
+      ]);
+      const audit = await database.pool.query(
+        `SELECT metadata FROM audit_logs WHERE action = 'service_area.updated' AND actor_id = $1 ORDER BY id`,
+        [admin.id],
+      );
+      expect(audit.rows.map((row) => row.metadata.toVersion)).toEqual([
+        original.version + 1,
+        original.version + 2,
+      ]);
+    } finally {
+      await database.pool.query(
+        `UPDATE service_areas SET version = $2, name = $3, area = $4, active = $5, updated_by = $6, updated_at = $7 WHERE id = $1`,
+        [
+          original.id,
+          original.version,
+          original.name,
+          original.area,
+          original.active,
+          original.updated_by,
+          original.updated_at,
+        ],
+      );
+      await database.pool.query(
+        'DELETE FROM service_area_versions WHERE area_id = $1 AND version > $2',
+        [original.id, original.version],
+      );
+    }
+  });
 });
