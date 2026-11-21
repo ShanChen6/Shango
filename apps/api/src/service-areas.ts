@@ -54,6 +54,16 @@ export class ServiceAreaService {
     if (!dropoffOk) throw new UnprocessableEntityException('Điểm giao hàng nằm ngoài vùng phục vụ');
   }
 
+  /** Active shapes only, for client-side hints and map overlays; the server still decides. */
+  async active() {
+    return (
+      await this.database.pool.query(
+        `SELECT id, name, ST_AsGeoJSON(area, 6)::json AS geometry, version
+         FROM service_areas WHERE active ORDER BY code`,
+      )
+    ).rows;
+  }
+
   async list() {
     return (await this.database.pool.query(`${AREA_SELECT} ORDER BY a.code`)).rows;
   }
@@ -131,6 +141,17 @@ export class ServiceAreaService {
       );
       return (await client.query(`${AREA_SELECT} WHERE a.id = $1`, [id])).rows[0];
     });
+  }
+}
+
+@Controller('maps/service-areas')
+@UseGuards(AccessGuard)
+export class ServiceAreasController {
+  constructor(@Inject(ServiceAreaService) private readonly areas: ServiceAreaService) {}
+
+  @Get()
+  async active() {
+    return { items: await this.areas.active() };
   }
 }
 

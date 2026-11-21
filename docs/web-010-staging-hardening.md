@@ -110,7 +110,8 @@ ssh -L 9090:127.0.0.1:9090 <vps>   # mở http://127.0.0.1:9090
   Firefox, WebKit desktop và WebKit mobile (job CI `web-cross-browser`). Lần chạy đầu tìm ra lỗi:
   Firefox để lời hỏi quyền vị trí treo, không báo lại cho app. App nay đọc Permissions API và hiện
   hướng dẫn sau 10 giây chờ.
-- Thu thập metrics/log tập trung và alert (chưa có Prometheus/Grafana); log JSON hiện chỉ có
+- Kênh gửi cảnh báo (Alertmanager tới chat/email) và log tập trung: Prometheus và luật cảnh báo đã có
+  (profile `monitoring`), nhưng cảnh báo mới chỉ xem trên UI; chưa có Grafana. Log JSON chỉ có
   requestId/method/status/thời gian.
 - Load test trên staging (đã có script và số đo local, xem [load test](load-test.md)); pentest; DPIA/quy trình dữ liệu cá nhân.
 - Evidence thiết bị thật WEB-002 và PO duyệt bảng giá, phí, ledger, bằng chứng giao hàng.

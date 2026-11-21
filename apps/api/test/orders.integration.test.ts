@@ -781,6 +781,19 @@ describe('orders, dispatch and realtime (WEB-009)', () => {
         updatedBy: admin.id,
       });
 
+      const forCustomer = await call('/maps/service-areas', 'GET', undefined, customer.token);
+      expect(forCustomer.status).toBe(200);
+      const visible = forCustomer.data.items.find(
+        (item: { id: string }) => item.id === original.id,
+      );
+      expect(visible).toEqual({
+        id: original.id,
+        name: 'Nội thành thử nghiệm',
+        version: original.version + 1,
+        geometry: { type: 'MultiPolygon', coordinates: [small.geometry.coordinates] },
+      });
+      expect((await call('/maps/service-areas')).status).toBe(401);
+
       // Inside the discovery rectangle but outside the polygon.
       const outsidePickup = await quote({ longitude: 105.5, latitude: 21.2 });
       expect(outsidePickup.status).toBe(422);

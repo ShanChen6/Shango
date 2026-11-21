@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Coordinate, MapConfig, MapPlace, MapRoute, MapSearch } from '@shango/contracts';
+import type {
+  ActiveServiceArea,
+  Coordinate,
+  MapConfig,
+  MapPlace,
+  MapRoute,
+  MapSearch,
+} from '@shango/contracts';
 import type { createWebApi } from '@shango/api-client';
 import { Badge, Button, Card, InlineAlert, PageHeader, TextField } from '@shango/ui';
 import { AddressMap } from './address-map';
 import { OrderComposer } from './order-composer';
+import { servedBy } from './service-area';
 import {
   confirmStop,
   draftReady,
@@ -16,11 +24,21 @@ import {
 } from './delivery-draft';
 
 type WebApi = ReturnType<typeof createWebApi>;
+const OUTSIDE_AREA =
+  'Điểm này nằm ngoài vùng ShanGo đang nhận đơn. Hãy chọn điểm trong vùng viền xanh.';
 export function AddressPage({ api }: { api: WebApi }) {
   const configQuery = useQuery({
     queryKey: ['map-config'],
     queryFn: () => api.request<MapConfig>('/maps/config'),
   });
+  // Hint for the customer; the API re-checks every quote and order against PostGIS.
+  const areasQuery = useQuery({
+    queryKey: ['service-areas'],
+    queryFn: () => api.request<{ items: ActiveServiceArea[] }>('/maps/service-areas'),
+    retry: 1,
+    staleTime: 5 * 60_000,
+  });
+  const areas = areasQuery.data?.items ?? null;
   const [active, setActive] = useState<StopKey>('pickup');
   const [stops, setStops] = useState({ pickup: emptyStop(), dropoff: emptyStop() });
   const [query, setQuery] = useState('');
@@ -69,6 +87,11 @@ export function AddressPage({ api }: { api: WebApi }) {
     if (!config || !withinRegion(position, config)) {
       requestEpoch.current += 1;
       setError('Điểm nằm ngoài khung thử nghiệm Hà Nội.');
+      return;
+    }
+    if (!servedBy(position, areas)) {
+      requestEpoch.current += 1;
+      setError(OUTSIDE_AREA);
       return;
     }
     changeStop({ position, label });
@@ -199,7 +222,9 @@ export function AddressPage({ api }: { api: WebApi }) {
               </button>
             ))}
           </div>
-          {config && <AddressMap config={config} position={stop.position} onPick={choose} />}
+          {config && (
+            <AddressMap config={config} position={stop.position} onPick={choose} areas={areas} />
+          )}
           <div className="coordinate-grid">
             <TextField
               label="Kinh độ"
@@ -257,15 +282,20 @@ export function AddressPage({ api }: { api: WebApi }) {
             {results?.length === 0 && (
               <p>Không có kết quả. Thử thêm tên đường hoặc nhập thủ công.</p>
             )}
-            {results?.map((item) => (
-              <button
-                className="result"
-                key={item.id}
-                onClick={() => choose(item.position, item.label)}
-              >
-                {item.label}
-              </button>
-            ))}
+            {results?.map((item) => {
+              const served = servedBy(item.position, areas);
+              return (
+                <button
+                  className="result"
+                  key={item.id}
+                  disabled={!served}
+                  onClick={() => choose(item.position, item.label)}
+                >
+                  {item.label}
+                  {!served && <small> · Ngoài vùng phục vụ</small>}
+                </button>
+              );
+            })}
             <Button
               type="button"
               disabled={!online || reversing || !stop.position || !config?.geocodingConfigured}
@@ -281,6 +311,10 @@ export function AddressPage({ api }: { api: WebApi }) {
             <Button
               type="button"
               onClick={() => {
+                if (stop.position && !servedBy(stop.position, areas)) {
+                  setError(OUTSIDE_AREA);
+                  return;
+                }
                 const checked = confirmStop(stop, config);
                 if (checked.errors.length) setError(checked.errors.join(' '));
                 else setStops((current) => ({ ...current, [active]: checked.stop }));

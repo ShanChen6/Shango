@@ -285,3 +285,9 @@ export interface ServiceAreaUpdate {
   geometry: AreaGeometry;
   expectedVersion: number;
 }
+export interface ActiveServiceArea {
+  id: string;
+  name: string;
+  version: number;
+  geometry: AreaGeometry;
+}

@@ -16,7 +16,11 @@ import { Cache, Database } from './database';
 import { AccessGuard } from './security';
 import { AdminDriversController, DriversController } from './drivers';
 import { MapsController, MapsService } from './maps';
-import { AdminServiceAreasController, ServiceAreaService } from './service-areas';
+import {
+  AdminServiceAreasController,
+  ServiceAreaService,
+  ServiceAreasController,
+} from './service-areas';
 import { ProfilesController } from './profiles';
 import { AuditController } from './audit';
 import {
@@ -69,6 +73,7 @@ class HealthController {
     AdminDriversController,
     MapsController,
     AdminServiceAreasController,
+    ServiceAreasController,
     ProfilesController,
     AuditController,
     AdminDocumentsController,

@@ -37,6 +37,14 @@ Mục **Vùng phục vụ** (`/service-areas`): thông tin vùng, bản đồ xe
 bản nháp viền nét đứt), lịch sử phiên bản. Quản trị viên dán GeoJSON Polygon/MultiPolygon (nhận cả
 Feature hoặc FeatureCollection một phần tử), đổi tên, bật/tắt, rồi lưu. Điều phối viên chỉ xem.
 
+## Customer web
+
+`GET /maps/service-areas` (mọi vai trò đã đăng nhập) trả các vùng đang bật. Trang chọn địa chỉ vẽ vùng
+viền xanh nét đứt trên bản đồ, chặn chọn điểm ngoài vùng (bấm bản đồ, nhập tọa độ, xác nhận điểm) và
+làm mờ kết quả tìm kiếm ngoài vùng kèm nhãn "Ngoài vùng phục vụ". Kiểm tra phía trình duyệt
+(ray casting, biên tính là bên trong) **chỉ là gợi ý**: nếu không tải được vùng thì không chặn, và API
+vẫn kiểm tra lại bằng PostGIS ở báo giá và tạo đơn.
+
 ## Khôi phục phiên bản cũ
 
 Chưa có nút khôi phục. Lấy GeoJSON của phiên bản cũ bằng SQL rồi dán lại trong Admin (tạo phiên bản
@@ -53,7 +61,7 @@ SELECT ST_AsGeoJSON(area, 6) FROM service_area_versions WHERE area_id = '<id>' A
 - Integration (PostGIS thật): quyền, 409 version, 422 tự cắt, 400 ngoài khung và vòng hở, chặn tắt
   vùng cuối, báo giá ngoài polygon nhưng trong khung bị 422, thu hẹp vùng sau báo giá chặn tạo đơn,
   lịch sử phiên bản và audit. Test tự khôi phục vùng ban đầu.
-- E2E mock: Admin lưu polygon, Điều phối viên chỉ xem, không tràn ngang 320–1440px, axe a11y.
+- E2E mock: khách thấy vùng và bị chặn chọn điểm ngoài vùng; Admin lưu polygon, Điều phối viên chỉ xem, không tràn ngang 320–1440px, axe a11y.
 
 ## Cần PO
 

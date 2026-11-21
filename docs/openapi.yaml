@@ -931,6 +931,29 @@ paths:
       responses:
         '200': { description: Cancelled order }
         '409': { description: Version changed or picked up already }
+  /maps/service-areas:
+    get:
+      tags: [Orders]
+      summary: Active service areas for map overlays and client-side hints (any signed-in role)
+      description: The server still re-checks every quote and order; clients must not treat this as authoritative.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Active areas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        version: { type: integer }
+                        geometry: { $ref: '#/components/schemas/AreaGeometry' }
   /admin/service-areas:
     get:
       tags: [Admin]

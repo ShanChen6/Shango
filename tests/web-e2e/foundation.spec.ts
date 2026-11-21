@@ -210,6 +210,83 @@ test('Customer confirms a memory-only address draft with provider search', async
   await expect(page.getByText(/chưa thể báo giá/i)).toBeVisible();
 });
 
+test('Customer sees the service area and cannot pick points outside it', async ({ page }) => {
+  await mockCustomerSession(page);
+  await page.route('**/api/v1/maps/config', (route) =>
+    route.fulfill({
+      json: {
+        region: {
+          id: 'hanoi-pilot',
+          name: 'Hà Nội',
+          bounds: { west: 105.3, south: 20.55, east: 106.05, north: 21.4 },
+          center: { longitude: 105.8342, latitude: 21.0278 },
+        },
+        geocodingConfigured: true,
+        routingConfigured: false,
+        searchMode: 'submit-only',
+        attribution: '© OpenStreetMap contributors',
+        attributionUrl: 'https://www.openstreetmap.org/copyright',
+        routingProfile: 'driving-unverified-for-motorcycles',
+      },
+    }),
+  );
+  await page.route('**/api/v1/maps/service-areas', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: 'a1',
+            name: 'Nội thành',
+            version: 2,
+            geometry: {
+              type: 'Polygon',
+              coordinates: [
+                [
+                  [105.8, 21.0],
+                  [105.9, 21.0],
+                  [105.9, 21.06],
+                  [105.8, 21.06],
+                  [105.8, 21.0],
+                ],
+              ],
+            },
+          },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/v1/maps/search?**', (route) =>
+    route.fulfill({
+      json: {
+        provider: 'nominatim',
+        items: [
+          {
+            id: '1',
+            label: 'Hồ Hoàn Kiếm, Hà Nội',
+            position: { longitude: 105.852, latitude: 21.028 },
+          },
+          { id: '2', label: 'Sóc Sơn, Hà Nội', position: { longitude: 105.85, latitude: 21.25 } },
+        ],
+      },
+    }),
+  );
+  await page.goto('http://127.0.0.1:4174/addresses');
+  await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(1);
+  await page.getByLabel('Tìm địa chỉ tại Hà Nội').fill('Hà Nội');
+  await page.getByRole('button', { name: 'Tìm địa chỉ' }).click();
+  await expect(
+    page.getByRole('button', { name: /Sóc Sơn, Hà Nội · Ngoài vùng phục vụ/ }),
+  ).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Hồ Hoàn Kiếm, Hà Nội' })).toBeEnabled();
+  await page.getByLabel('Kinh độ').fill('105.85');
+  await page.getByLabel('Vĩ độ').fill('21.25');
+  await page.getByRole('button', { name: 'Áp dụng tọa độ' }).click();
+  await expect(page.getByText(/nằm ngoài vùng ShanGo đang nhận đơn/)).toBeVisible();
+  await page.getByRole('button', { name: 'Hồ Hoàn Kiếm, Hà Nội' }).click();
+  await expect(page.getByText(/nằm ngoài vùng ShanGo đang nhận đơn/)).toBeHidden();
+  await expect(page.getByLabel('Kinh độ')).toHaveValue('105.852');
+});
+
 test('Customer can use and clear the manual address fallback', async ({ page }) => {
   await mockCustomerSession(page);
   const config = {
