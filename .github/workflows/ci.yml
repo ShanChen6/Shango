@@ -65,6 +65,21 @@ jobs:
         working-directory: apps/customer
       - run: npx expo export --platform android --output-dir dist-ci
         working-directory: apps/driver
+  web-cross-browser:
+    name: web-cross-browser
+    runs-on: ubuntu-latest
+    env:
+      PW_CROSS_BROWSER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps firefox webkit
+      - run: npx playwright test --project=firefox --project=webkit --project=webkit-mobile
   web-e2e-real:
     name: web-contract-e2e
     runs-on: ubuntu-latest
