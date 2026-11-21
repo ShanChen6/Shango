@@ -25,8 +25,8 @@
 - [x] Responsive Task-first + Map-first screen ở 320px, 768px và 1440px.
 - [x] Native keyboard controls, labels, 44px controls, attribution và text alternative cho map.
 - [x] Unit + Playwright evidence với API mock.
-- [ ] Contract E2E tự động với `/auth/web/*` server thật trong CI. Backend đã có
-  ([web auth server](web-auth-server.md)) và đã smoke thủ công local; còn thiếu job CI có DB.
+- [x] Contract E2E tự động với `/auth/web/*` server thật trong CI: job `web-contract-e2e`
+  (`tests/web-e2e-real`), xanh tại [run #33](https://github.com/ShanChen6/Shango/actions/runs/44900111922).
 - [x] Quote/order/list/detail và trạng thái trực tiếp: WEB-009 lát 1
   ([WEB-009](web-009-orders-dispatch.md)). Bản đồ vị trí tài xế trực tiếp chưa có.
 

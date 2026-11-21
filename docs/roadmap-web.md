@@ -77,7 +77,8 @@ Các phase có thể chia nhỏ/triển khai song song sau W1–W2, nhưng khôn
 - WEB-010: **Hardening + staging config có code** (Docker/Caddy/CSP, metrics, Redis adapter, backup/restore,
   CI contract E2E + axe); chưa provision VPS/deploy. Xem [WEB-010](web-010-staging-hardening.md) và
   [release checklist](release-checklist.md).
-- WEB-011: deprecate Expo, mobile packages/scripts sau migration verified.
+- WEB-011: **Đã chuẩn bị, chưa xóa** — kế hoạch, gate script `npm run gate:web011` và PR draft gỡ Expo
+  (không merge) chờ WEB-002, staging smoke và reviewer độc lập; xem [WEB-011](web-011-expo-deprecation.md).
 
 WEB-002–011 được tách thành deliverable, dependency và acceptance gate cụ thể trong
 [WEB-001 baseline audit](web-001-audit.md). Trạng thái “hoàn tất audit” không đồng nghĩa

@@ -49,8 +49,8 @@
 - [x] Permission denied/unsupported/stale/unavailable UX cho GPS foreground.
 - [x] Responsive 320/768/1440px cho `/`, `/documents`, `/profile`; control ≥ 44px, label cho input.
 - [x] Unit (`driver-policy.test.ts`) + Playwright (`tests/web-e2e/driver.spec.ts`) với API mock.
-- [ ] Contract E2E tự động với `/auth/web/*` server thật trong CI. Backend đã có
-  ([web auth server](web-auth-server.md)) và đã smoke thủ công local; còn thiếu job CI có DB.
+- [x] Contract E2E tự động với `/auth/web/*` server thật trong CI: job `web-contract-e2e`
+  (`tests/web-e2e-real`), xanh tại [run #33](https://github.com/ShanChen6/Shango/actions/runs/44900111922).
 - [x] Availability/presence, offer, nhận đơn, cập nhật trạng thái giao: WEB-009 lát 1
   ([WEB-009](web-009-orders-dispatch.md)). Bản đồ dẫn đường cho tài xế chưa có.
 - [ ] Tracking production + reconnect/snapshot — phụ thuộc evidence thiết bị thật WEB-002 và PO.
