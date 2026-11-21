@@ -15,6 +15,18 @@ export const environmentSchema = z
     CORS_ORIGINS: z.string().min(1),
     WEB_AUTH_ENABLED: z.enum(['true', 'false']).default('false'),
     CSRF_SECRET: z.string().min(32).optional(),
+    // WEB-009 pilot gate: orders, availability, GPS presence and dispatch. Off by default.
+    ORDERS_ENABLED: z.enum(['true', 'false']).default('false'),
+    // Pilot tariff in integer VND; unset vehicle type means no quote. Not PO-approved pricing.
+    TARIFF_VERSION: z.string().trim().min(1).max(40).default('pilot-unapproved'),
+    TARIFF_MOTORCYCLE_BASE_VND: z.coerce.number().int().positive().max(10_000_000).optional(),
+    TARIFF_MOTORCYCLE_PER_KM_VND: z.coerce.number().int().positive().max(1_000_000).optional(),
+    TARIFF_CAR_BASE_VND: z.coerce.number().int().positive().max(10_000_000).optional(),
+    TARIFF_CAR_PER_KM_VND: z.coerce.number().int().positive().max(1_000_000).optional(),
+    DISPATCH_RADIUS_M: z.coerce.number().int().min(100).max(50_000).default(5000),
+    DISPATCH_OFFER_SECONDS: z.coerce.number().int().min(5).max(300).default(20),
+    DISPATCH_SEARCH_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
+    DISPATCH_TICK_MS: z.coerce.number().int().min(0).max(60_000).default(2000),
     NOMINATIM_BASE_URL: z.string().url().optional(),
     NOMINATIM_PUBLIC_OPT_IN: z.enum(['true', 'false']).default('false'),
     NOMINATIM_USER_AGENT: z

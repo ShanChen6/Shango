@@ -62,28 +62,6 @@ export class DriversController {
       throw new ConflictException('Approved profile changes require an administrator');
     return result.rows[0];
   }
-  @Patch('me/availability')
-  @Roles('driver')
-  async availability(@Body() body: unknown, @Req() request: AuthRequest) {
-    const { available } = parse(z.object({ available: z.boolean() }).strict(), body);
-    return this.database.transaction(async (client) => {
-      const profile = (
-        await client.query<{ status: string }>(
-          'SELECT status FROM driver_profiles WHERE user_id = $1 FOR UPDATE',
-          [request.account.id],
-        )
-      ).rows[0];
-      if (available && profile?.status !== 'approved')
-        throw new ForbiddenException('Driver approval required');
-      // Initial phase only supports going offline. GPS/presence is implemented in SG-018.
-      if (available)
-        throw new ConflictException('Online mode awaits GPS and dispatch implementation (SG-018)');
-      await client.query('UPDATE driver_locations SET is_available = false WHERE driver_id = $1', [
-        request.account.id,
-      ]);
-      return { available: false };
-    });
-  }
 }
 
 @Controller('admin/drivers')
